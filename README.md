@@ -1,152 +1,109 @@
-# @dqcai/mongodb
+# @dqcai/mongodb - Universal MongoDB Adapter for Node.js
 
-Một thư viện ORM hiện đại cho Node.js giúp chuyển đổi MongoDB (NoSQL) thành mô hình truy vấn có cấu trúc tương tự SQL. Thư viện cung cấp khả năng định nghĩa schema mạnh mẽ, quản lý kết nối thông minh và API truy vấn trực quan.
+<div align="center">
 
-## Đặc điểm nổi bật
+![Universal Mongo](https://img.shields.io/badge/Mongo-Universal-blue)
+![TypeScript](https://img.shields.io/badge/TypeScript-Ready-blue)
+![Cross Platform](https://img.shields.io/badge/Platform-Universal-green)
+![NPM Version](https://img.shields.io/npm/v/@dqcai/mongodb)
+![NPM Downloads](https://img.shields.io/npm/dm/@dqcai/mongodb)
 
-- 🏗️ **Schema-driven**: Định nghĩa cấu trúc database rõ ràng với validation
-- 🔄 **SQL-like API**: Truy vấn NoSQL với syntax quen thuộc
-- 🚀 **Type Safety**: Hỗ trợ TypeScript đầy đủ
-- 🔐 **Transaction**: Multi-document transactions
-- 🎯 **Connection Management**: Tự động quản lý kết nối và reconnection
-- ⚡ **Performance**: Connection pooling và optimization
+**Transform MongoDB into a SQL-like experience with modern ORM capabilities**
 
-## Cài đặt
+[📖 Documentation](#-documentation) • [🚀 Quick Start](#-quick-start) • [💡 Examples](#-examples) • [🤝 Contributing](#-contributing)
+
+</div>
+
+---
+
+## 🌟 Why Choose @dqcai/mongodb?
+
+**@dqcai/mongodb** is a revolutionary ORM library that bridges the gap between NoSQL flexibility and SQL familiarity. Built for modern Node.js applications, it transforms your MongoDB operations into an intuitive, type-safe, and highly performant experience.
+
+### ✨ Key Features
+
+- 🏗️ **Schema-Driven Architecture** - Define clear database structures with powerful validation
+- 🔄 **SQL-like API** - Query NoSQL with familiar syntax that feels like home
+- 🚀 **Full TypeScript Support** - Complete type safety from database to application
+- 🔐 **Multi-Document Transactions** - ACID compliance when you need it
+- 🎯 **Intelligent Connection Management** - Auto-reconnection and pooling out of the box
+- ⚡ **Performance Optimized** - Built for speed with connection pooling and smart caching
+- 🛠️ **Universal DAO Pattern** - Consistent CRUD operations across your entire application
+- 📊 **Advanced Aggregation** - Complex queries made simple
+- 🔍 **Full-Text Search** - Powerful search capabilities built-in
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-npm install @dqcai/mongodb
+npm install @dqcai/mongodb mongodb
 ```
 
-## Kiến trúc thư viện
-
-### 1. **MongoAdapter**
-- Quản lý kết nối MongoDB với connection pooling
-- Tự động reconnection khi mất kết nối
-- Hỗ trợ cấu hình kết nối linh hoạt
-
-### 2. **MongoUniversalDAO**
-- Cung cấp các operation cơ bản: CRUD, transaction, schema management
-- Hỗ trợ MongoDB aggregation pipeline
-- API nhất quán và dễ sử dụng
-
-### 3. **MongoBaseService**
-- Lớp base cho các service cụ thể
-- Tích hợp sẵn transaction support
-- Hỗ trợ MongoDB query patterns và best practices
-
-### 4. **MongoDatabaseFactory**
-- Factory pattern để tạo và quản lý DAO instances
-- Tự động khởi tạo schema và indexes
-- Quản lý lifecycle của database connections
-
-## Tính năng chính
-
-### Schema Management
-- Tạo và quản lý collections
-- Tự động tạo indexes
-- Validation rules với JSON Schema
-- Migration support
-
-### Transaction Support
-- Multi-document ACID transactions
-- Automatic rollback on error
-- Session management
-
-### CRUD Operations
-- Insert, update, delete, find với MongoDB native syntax
-- Batch operations
-- Upsert support
-
-### Aggregation Pipeline
-- Hỗ trợ đầy đủ aggregation framework
-- Query optimization
-- Result transformation
-
-## Hướng dẫn sử dụng
-
-### 1. Định nghĩa Schema
-
-```typescript
-import { MongoDatabaseSchema } from '@dqcai/mongodb';
-
-const schema: MongoDatabaseSchema = {
-  version: "1.0.0",
-  database_name: "my_app",
-  description: "Ứng dụng quản lý người dùng",
-  collections: {
-    users: {
-      name: "users",
-      indexes: [
-        {
-          name: "email_unique",
-          keys: { email: 1 },
-          options: { unique: true }
-        },
-        {
-          name: "name_text_search",
-          keys: { name: "text" }
-        }
-      ],
-      validation: {
-        $jsonSchema: {
-          bsonType: "object",
-          required: ["name", "email"],
-          properties: {
-            name: { 
-              bsonType: "string",
-              minLength: 2,
-              maxLength: 100
-            },
-            email: { 
-              bsonType: "string",
-              pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
-            },
-            age: {
-              bsonType: "int",
-              minimum: 0,
-              maximum: 150
-            }
-          }
-        }
-      }
-    },
-    posts: {
-      name: "posts",
-      indexes: [
-        {
-          name: "user_id_index",
-          keys: { userId: 1 }
-        },
-        {
-          name: "content_text_search",
-          keys: { title: "text", content: "text" }
-        }
-      ]
-    }
-  }
-};
-```
-
-### 2. Khởi tạo Database Connection
+### Basic Connection
 
 ```typescript
 import { MongoDatabaseFactory } from '@dqcai/mongodb';
 
-const connectionString = "mongodb://localhost:27017";
-const dao = await MongoDatabaseFactory.createFromSchema(schema, connectionString);
+// Create DAO instance
+const dao = MongoDatabaseFactory.createDAO(
+  'mongodb://localhost:27017',
+  'myapp'
+);
+
+// Connect and start using
+await dao.connect();
+const users = await dao.find('users', { status: 'active' });
+console.log(users);
 ```
 
-### 3. Tạo Service Layer
+### Schema-Powered Development
 
 ```typescript
-import { MongoBaseService, MongoUniversalDAO } from '@dqcai/mongodb';
+import { DatabaseSchema } from '@dqcai/mongodb';
+
+const appSchema: DatabaseSchema = {
+  version: "1.0.0",
+  database_name: "myapp",
+  description: "My Application Database",
+  schemas: {
+    users: {
+      description: "User management",
+      cols: [
+        { name: "id", type: "string", primary_key: true },
+        { name: "name", type: "string", nullable: false },
+        { name: "email", type: "string", unique: true },
+        { name: "age", type: "integer" },
+        { name: "created_at", type: "timestamp" }
+      ],
+      indexes: [
+        { name: "idx_email", columns: ["email"], unique: true },
+        { name: "idx_name", columns: ["name"] }
+      ]
+    }
+  }
+};
+
+// Create DAO from schema
+const dao = await MongoDatabaseFactory.createFromSchema(
+  appSchema,
+  'mongodb://localhost:27017'
+);
+```
+
+## 💡 Examples
+
+### Modern Service Pattern
+
+```typescript
+import { MongoBaseService } from '@dqcai/mongodb';
 
 interface User {
   _id?: string;
   name: string;
   email: string;
-  age?: number;
-  createdAt?: Date;
+  age: number;
+  created_at?: Date;
 }
 
 class UserService extends MongoBaseService<User> {
@@ -154,161 +111,237 @@ class UserService extends MongoBaseService<User> {
     super(dao, 'users');
   }
 
-  // Tìm user theo email
   async findByEmail(email: string): Promise<User | null> {
     return await this.findOne({ email });
   }
 
-  // Tìm tất cả người dùng trưởng thành
   async findAdults(): Promise<User[]> {
     return await this.findMany({ age: { $gte: 18 } });
   }
 
-  // Tìm kiếm theo tên (text search)
-  async searchByName(searchTerm: string): Promise<User[]> {
-    return await this.findMany({ 
-      $text: { $search: searchTerm } 
-    });
-  }
-
-  // Cập nhật tuổi của user
-  async updateAge(userId: string, newAge: number): Promise<User | null> {
-    return await this.update(
-      { _id: userId }, 
-      { $set: { age: newAge } }
-    );
-  }
-
-  // Aggregation - thống kê độ tuổi
-  async getAgeStatistics() {
-    return await this.aggregate([
-      {
-        $group: {
-          _id: null,
-          avgAge: { $avg: "$age" },
-          minAge: { $min: "$age" },
-          maxAge: { $max: "$age" },
-          totalUsers: { $sum: 1 }
-        }
-      }
-    ]);
-  }
-}
-```
-
-### 4. Sử dụng Service
-
-```typescript
-// Khởi tạo service
-const userService = new UserService(dao);
-await userService.init();
-
-// Tạo user mới
-const newUser = await userService.create({
-  name: "Nguyễn Văn A",
-  email: "nguyenvana@example.com",
-  age: 25,
-  createdAt: new Date()
-});
-
-// Tìm user theo email
-const user = await userService.findByEmail("nguyenvana@example.com");
-
-// Tìm tất cả người trưởng thành
-const adults = await userService.findAdults();
-
-// Tìm kiếm theo tên
-const searchResults = await userService.searchByName("Nguyễn");
-
-// Cập nhật thông tin
-const updatedUser = await userService.updateAge(newUser._id, 26);
-
-// Thống kê
-const stats = await userService.getAgeStatistics();
-console.log('Thống kê độ tuổi:', stats);
-```
-
-### 5. Transaction Support
-
-```typescript
-import { MongoTransaction } from '@dqcai/mongodb';
-
-class OrderService extends MongoBaseService<Order> {
-  constructor(dao: MongoUniversalDAO, private userService: UserService) {
-    super(dao, 'orders');
-  }
-
-  async createOrderWithTransaction(userId: string, orderData: any) {
-    const transaction = new MongoTransaction(this.dao);
+  protected validateDocument(user: Partial<User>) {
+    const errors: string[] = [];
     
-    try {
-      await transaction.start();
-
-      // Tạo order
-      const order = await this.create({
-        userId,
-        ...orderData,
-        status: 'pending'
-      }, { session: transaction.session });
-
-      // Cập nhật user statistics
-      await this.userService.update(
-        { _id: userId },
-        { $inc: { totalOrders: 1 } },
-        { session: transaction.session }
-      );
-
-      await transaction.commit();
-      return order;
-    } catch (error) {
-      await transaction.rollback();
-      throw error;
+    if (!user.name?.trim()) errors.push('Name is required');
+    if (!user.email?.includes('@')) errors.push('Valid email required');
+    if (user.age && (user.age < 0 || user.age > 120)) {
+      errors.push('Age must be between 0 and 120');
     }
+    
+    return { isValid: errors.length === 0, errors };
   }
 }
 ```
 
-## API Reference
-
-### MongoBaseService Methods
-
-- `create(data, options?)` - Tạo document mới
-- `findOne(filter, options?)` - Tìm một document
-- `findMany(filter, options?)` - Tìm nhiều documents
-- `update(filter, update, options?)` - Cập nhật document
-- `delete(filter, options?)` - Xóa document
-- `aggregate(pipeline, options?)` - Thực hiện aggregation
-- `count(filter, options?)` - Đếm số lượng documents
-
-### Connection Options
+### Transaction Support
 
 ```typescript
-const options = {
-  maxPoolSize: 10,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-  family: 4 // Use IPv4, skip trying IPv6
-};
+await userService.executeTransaction(async () => {
+  const user = await userService.create({
+    name: 'John Doe',
+    email: 'john@example.com',
+    age: 30
+  });
+  
+  const postService = new PostService(dao);
+  await postService.create({
+    title: 'First Post',
+    content: 'Hello World!',
+    user_id: user._id,
+    published: true
+  });
+  
+  // Both operations succeed or fail together
+});
+```
 
-const dao = await MongoDatabaseFactory.createFromSchema(
-  schema, 
-  connectionString, 
-  options
+### Advanced Queries & Aggregation
+
+```typescript
+// Complex aggregation made simple
+const userStats = await userService.aggregate([
+  { $group: { _id: '$age', count: { $sum: 1 } } },
+  { $sort: { count: -1 } },
+  { $limit: 10 }
+]);
+
+// Full-text search
+const results = await userService.search(
+  'john',
+  ['name', 'email'],
+  { status: 'active' },
+  { limit: 20 }
+);
+
+// Bulk operations
+const importResult = await userService.bulkInsert(
+  largeUserArray, 
+  1000 // batch size
 );
 ```
 
-## Best Practices
+## 🏗️ Architecture & Design Patterns
 
-1. **Luôn định nghĩa schema** trước khi sử dụng
-2. **Sử dụng indexes** cho các truy vấn thường xuyên
-3. **Validation** dữ liệu ở cấp database
-4. **Transaction** cho các operations phức tạp
-5. **Connection pooling** để tối ưu hiệu suất
+### Universal DAO Pattern
+Consistent CRUD operations across all collections with intelligent type inference.
 
-## Contributing
+### Service Layer Architecture
+Build scalable applications with our battle-tested service pattern that encourages separation of concerns.
 
-Chúng tôi hoan nghênh các đóng góp từ cộng đồng. Vui lòng đọc [CONTRIBUTING.md](CONTRIBUTING.md) để biết thêm chi tiết.
+### Schema Migration Support
+Seamlessly migrate from traditional MongoDB schemas to our structured approach.
 
-## License
+## 🔧 Advanced Configuration
 
-MIT License - xem file [LICENSE](LICENSE) để biết thêm chi tiết.
+### Environment Setup
+
+```typescript
+// config/database.ts
+export const getDatabaseConfig = () => ({
+  connectionString: process.env.MONGODB_URL || 'mongodb://localhost:27017',
+  databaseName: process.env.DB_NAME || 'myapp',
+  options: {
+    maxPoolSize: parseInt(process.env.DB_POOL_SIZE || '10'),
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 45000,
+  }
+});
+```
+
+### Logging & Debugging
+
+```typescript
+import { MongoLoggerConfig, MongoModules } from '@dqcai/mongodb';
+
+// Development mode
+MongoLoggerConfig.updateConfiguration(
+  MongoLoggerConfig.createDebugConfig()
+);
+
+// Production mode  
+MongoLoggerConfig.updateConfiguration(
+  MongoLoggerConfig.createProductionConfig()
+);
+```
+
+## 📚 Documentation
+
+### Core API Methods
+
+| Method | Description | Example |
+|--------|-------------|---------|
+| `connect()` | Establish database connection | `await dao.connect()` |
+| `find(collection, filter, options)` | Query documents | `await dao.find('users', { age: { $gte: 18 } })` |
+| `insert(collection, doc)` | Create new document | `await dao.insert('users', userData)` |
+| `update(collection, filter, update)` | Update documents | `await dao.update('users', { _id }, { $set: data })` |
+| `aggregate(collection, pipeline)` | Complex queries | `await dao.aggregate('users', pipeline)` |
+
+### Service Layer Methods
+
+| Method | Description | Use Case |
+|--------|-------------|----------|
+| `create(data)` | Create with validation | User registration |
+| `findWithPagination()` | Paginated results | List views |
+| `bulkInsert()` | Batch operations | Data imports |
+| `executeTransaction()` | ACID operations | Complex workflows |
+| `search()` | Full-text search | Search functionality |
+
+## 🎯 Best Practices
+
+### 1. **Always Define Schemas**
+Use schemas to ensure data consistency and enable powerful validation.
+
+### 2. **Leverage Indexes**
+Define indexes in your schema for frequently queried fields.
+
+### 3. **Use Transactions Wisely**  
+Apply transactions for multi-document operations that require consistency.
+
+### 4. **Connection Management**
+Implement singleton pattern for database connections in production.
+
+### 5. **Error Handling**
+Implement comprehensive error handling for robust applications.
+
+## 🔍 Migration Guide
+
+### From Traditional MongoDB
+
+```typescript
+// Import existing MongoDB data
+await userService.importFromMongo(mongodbRecords, {
+  batchSize: 500,
+  transformRecord: (record) => ({
+    ...record,
+    migrated_at: new Date(),
+    created_at: new Date(record.created_at)
+  }),
+  onProgress: (processed, total) => {
+    console.log(`Migration progress: ${processed}/${total}`);
+  }
+});
+```
+
+## 🚀 Performance Tips
+
+- Use connection pooling for production environments
+- Implement proper indexing strategies
+- Leverage bulk operations for large datasets
+- Monitor query performance with built-in logging
+- Use aggregation pipelines for complex data processing
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+### Getting Started
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Submit a pull request
+
+### Development Setup
+```bash
+git clone https://github.com/cuongdqpayment/dqcai-mongodb.git
+cd dqcai-mongodb
+npm install
+npm test
+```
+
+### Contributing Guidelines
+- Follow TypeScript best practices
+- Write comprehensive tests
+- Update documentation for new features
+- Maintain backwards compatibility
+- Follow semantic versioning
+
+## 🌍 Community & Support
+
+Join our growing community of developers who are building amazing applications with @dqcai/mongodb!
+
+- **📂 GitHub**: [Repository & Issues](https://github.com/cuongdqpayment/dqcai-mongodb)
+- **📦 NPM**: [Package & Versions](https://www.npmjs.com/package/@dqcai/mongodb)
+- **🐛 Bug Reports**: [GitHub Issues](https://github.com/cuongdqpayment/dqcai-mongodb/issues)
+- **💬 Community**: [Facebook Page](https://www.facebook.com/share/p/19esHGbaGj/)
+- **📧 Contact**: [Email Support](mailto:support@dqcai.com)
+
+### Roadmap
+
+- [ ] GraphQL integration
+- [ ] Real-time subscriptions
+- [ ] Advanced caching strategies
+- [ ] Multi-database support
+- [ ] CLI tools for schema management
+
+## 📄 License
+
+MIT License - see the [LICENSE](https://github.com/cuongdqpayment/dqcai-mongodb/blob/main/LICENSE) file for details.
+
+---
+
+**@dqcai/mongodb** - Where MongoDB meets modern development! ✨
+
+*Built with ❤️ by developers, for developers*
+
+[⭐ Star us on GitHub](https://github.com/cuongdqpayment/dqcai-mongodb) • [📖 Read the Docs](#-documentation) • [🚀 Get Started](#-quick-start)

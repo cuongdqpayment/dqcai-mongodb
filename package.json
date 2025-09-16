@@ -2,7 +2,7 @@
   "name": "@dqcai/mongodb",
   "version": "1.0.0",
   "type": "module",
-  "description": "Universal MongoDb adapter for Node.js with a unified API and query builder.",
+  "description": "Universal MongoDb adapter for Node.js with a unified API.",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "module": "lib/index.mjs",
