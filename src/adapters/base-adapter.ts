@@ -1,8 +1,9 @@
+// ./src/adapter/base-adapter.ts
 import { MongoClientOptions, MongoClient } from "mongodb";
-import { BaseAdapter, MongoConnection } from "../types";
+import { MongoAdapter, MongoConnection } from "../types";
 
 // ========================== MONGODB ADAPTER ==========================
-export class MongoAdapter implements BaseAdapter {
+export class BaseMongoAdapter implements MongoAdapter {
   private connections: Map<string, MongoConnection> = new Map();
 
   isSupported(): boolean {

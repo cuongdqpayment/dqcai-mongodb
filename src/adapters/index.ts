@@ -1,1 +1,1 @@
-export * from './mongo-adapter';
+export * from './base-adapter';

@@ -11,7 +11,7 @@ export {
 export { MongoUniversalDAO } from "./core/universal-dao";
 export { MongoDatabaseFactory } from "./core/database-factory";
 export { MongoBaseService } from "./core/base-service";
-export { MongoAdapter } from "./adapters/mongo-adapter";
+export { BaseMongoAdapter } from "./adapters/base-adapter";
 
 // ========================== TYPE EXPORTS ==========================
 export * from "./types";
