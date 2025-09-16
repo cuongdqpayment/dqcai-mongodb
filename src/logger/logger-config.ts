@@ -10,6 +10,7 @@ import {
 export { BaseModule };
 
 export enum MongoModules {
+  DATABASE_MANAGER = "DatabaseManager",
   DATABASE_FACTORY = "DatabaseFactory",
   UNIVERSAL_DAO = "UniversalDAO",
   BASE_SERVICE = "BaseService",
@@ -138,9 +139,7 @@ export class MongoLoggerConfig {
     ) {
       console.log(
         "MongoLoggerConfig.updateConfiguration() - Configuration updated. Proxy loggers will use new settings automatically.",
-        `Active proxies: ${Array.from(
-          MongoLoggerConfig.proxyInstances.keys()
-        )}`
+        `Active proxies: ${Array.from(MongoLoggerConfig.proxyInstances.keys())}`
       );
     }
   }

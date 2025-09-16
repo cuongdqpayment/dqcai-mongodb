@@ -1,6 +1,13 @@
 ```ts
 // src/types.ts
-import { MongoClient, Db, Collection, ObjectId, ClientSession, MongoClientOptions } from 'mongodb';
+import {
+  MongoClient,
+  Db,
+  Collection,
+  ObjectId,
+  ClientSession,
+  MongoClientOptions,
+} from "mongodb";
 
 // ========================== BASIC MONGODB TYPES ==========================
 export interface MongoConnection {
@@ -18,7 +25,11 @@ export interface MongoResult {
 
 export interface MongoAdapter {
   disconnect(connectionString: string, databaseName: string): unknown;
-  connect(connectionString: string, dbName: string, options?: MongoClientOptions): Promise<MongoConnection>;
+  connect(
+    connectionString: string,
+    dbName: string,
+    options?: MongoClientOptions
+  ): Promise<MongoConnection>;
   isSupported(): boolean;
 }
 
@@ -151,7 +162,7 @@ export interface DatabaseSchema {
 
 export interface MongoIndexDefinition {
   name: string;
-  keys: Record<string, 1 | -1 | 'text' | '2dsphere'>;
+  keys: Record<string, 1 | -1 | "text" | "2dsphere">;
   options?: {
     unique?: boolean;
     sparse?: boolean;
@@ -246,50 +257,50 @@ export interface HealthCheckResult {
 export const MONGODB_TYPE_MAPPING = {
   mongodb: {
     // String types
-    string: 'String',
-    varchar: 'String',
-    char: 'String',
-    text: 'String',
-    email: 'String',
-    url: 'String',
-    uuid: 'String',
-    
+    string: "String",
+    varchar: "String",
+    char: "String",
+    text: "String",
+    email: "String",
+    url: "String",
+    uuid: "String",
+
     // Numeric types
-    integer: 'Number',
-    int: 'Number',
-    bigint: 'Number',
-    smallint: 'Number',
-    tinyint: 'Number',
-    decimal: 'Number',
-    numeric: 'Number',
-    float: 'Number',
-    double: 'Number',
-    
+    integer: "Number",
+    int: "Number",
+    bigint: "Number",
+    smallint: "Number",
+    tinyint: "Number",
+    decimal: "Number",
+    numeric: "Number",
+    float: "Number",
+    double: "Number",
+
     // Boolean
-    boolean: 'Boolean',
-    bool: 'Boolean',
-    
+    boolean: "Boolean",
+    bool: "Boolean",
+
     // Date/Time types
-    timestamp: 'Date',
-    datetime: 'Date',
-    date: 'Date',
-    time: 'Date',
-    
+    timestamp: "Date",
+    datetime: "Date",
+    date: "Date",
+    time: "Date",
+
     // Complex types
-    json: 'Object',
-    array: 'Array',
-    object: 'Object',
-    
+    json: "Object",
+    array: "Array",
+    object: "Object",
+
     // Binary types
-    blob: 'Buffer',
-    binary: 'Buffer',
-    
+    blob: "Buffer",
+    binary: "Buffer",
+
     // MongoDB specific
-    objectid: 'ObjectId',
-    mixed: 'Mixed',
+    objectid: "ObjectId",
+    mixed: "Mixed",
     // Add index signature here
-    // [key: string]: string; 
-  }
+    // [key: string]: string;
+  },
 };
 
 // ========================== UTILITY TYPES ==========================
@@ -355,8 +366,8 @@ export interface MigrationMapping {
 }
 
 export interface MigrationConfig {
-  sourceType: 'sqlite' | 'mongodb';
-  targetType: 'sqlite' | 'mongodb';
+  sourceType: "sqlite" | "mongodb";
+  targetType: "sqlite" | "mongodb";
   mappings: MigrationMapping[];
   batchSize?: number;
   onProgress?: (processed: number, total: number) => void;
@@ -378,11 +389,9 @@ export interface ValidationRule {
 export interface SchemaValidation {
   [fieldName: string]: ValidationRule;
 }
-
 ```
 
 ```ts
-
 // ./src/adapter/base-adapter.ts
 import { MongoClientOptions, MongoClient } from "mongodb";
 import { MongoAdapter, MongoConnection } from "../types";
@@ -393,7 +402,7 @@ export class BaseMongoAdapter implements MongoAdapter {
 
   isSupported(): boolean {
     try {
-      require('mongodb');
+      require("mongodb");
       return true;
     } catch {
       return false;
@@ -406,7 +415,7 @@ export class BaseMongoAdapter implements MongoAdapter {
     options?: MongoClientOptions
   ): Promise<MongoConnection> {
     const connectionKey = `${connectionString}_${dbName}`;
-    
+
     // Return existing connection if available
     const existingConnection = this.connections.get(connectionKey);
     if (existingConnection?.isConnected) {
@@ -422,7 +431,7 @@ export class BaseMongoAdapter implements MongoAdapter {
 
       await client.connect();
       const db = client.db(dbName);
-      
+
       // Test connection
       await db.admin().ping();
 
@@ -435,14 +444,16 @@ export class BaseMongoAdapter implements MongoAdapter {
       this.connections.set(connectionKey, connection);
       return connection;
     } catch (error) {
-      throw new Error(`Failed to connect to MongoDB: ${(error as Error).message}`);
+      throw new Error(
+        `Failed to connect to MongoDB: ${(error as Error).message}`
+      );
     }
   }
 
   async disconnect(connectionString: string, dbName: string): Promise<void> {
     const connectionKey = `${connectionString}_${dbName}`;
     const connection = this.connections.get(connectionKey);
-    
+
     if (connection?.client) {
       await connection.client.close();
       connection.isConnected = false;
@@ -458,28 +469,26 @@ export class BaseMongoAdapter implements MongoAdapter {
         }
       }
     );
-    
+
     await Promise.all(disconnectPromises);
     this.connections.clear();
   }
 }
-
 ```
 
 ```ts
-
 // src/core/base-service.ts
 
 import { ObjectId } from "mongodb";
-import { 
-  MongoQueryOptions, 
-  WhereClause, 
-  OrderByClause, 
+import {
+  MongoQueryOptions,
+  WhereClause,
+  OrderByClause,
   LimitOffset,
   AggregationPipeline,
   UpdateOperation,
   ImportOptions,
-  ImportResult
+  ImportResult,
 } from "../types";
 import { MongoUniversalDAO } from "./universal-dao";
 
@@ -503,10 +512,13 @@ export abstract class MongoBaseService<T = any> {
   }
 
   // ========================== BASIC CRUD OPERATIONS ==========================
-  
+
   async create(data: Partial<T>): Promise<T> {
     await this.init();
-    const result = await this.dao.insert(this.collectionName, data as Record<string, any>);
+    const result = await this.dao.insert(
+      this.collectionName,
+      data as Record<string, any>
+    );
     return result.rows[0] as T;
   }
 
@@ -521,13 +533,15 @@ export abstract class MongoBaseService<T = any> {
 
   async findById(id: string | ObjectId): Promise<T | null> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    return await this.dao.findOne(this.collectionName, { _id: objectId }) as T | null;
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
+    return (await this.dao.findOne(this.collectionName, {
+      _id: objectId,
+    })) as T | null;
   }
 
   async findOne(filter: Record<string, any> = {}): Promise<T | null> {
     await this.init();
-    return await this.dao.findOne(this.collectionName, filter) as T | null;
+    return (await this.dao.findOne(this.collectionName, filter)) as T | null;
   }
 
   async findMany(
@@ -535,7 +549,7 @@ export abstract class MongoBaseService<T = any> {
     options?: MongoQueryOptions
   ): Promise<T[]> {
     await this.init();
-    return await this.dao.find(this.collectionName, filter, options) as T[];
+    return (await this.dao.find(this.collectionName, filter, options)) as T[];
   }
 
   async updateById(
@@ -543,7 +557,7 @@ export abstract class MongoBaseService<T = any> {
     update: Partial<T>
   ): Promise<boolean> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
     const result = await this.dao.update(
       this.collectionName,
       { _id: objectId },
@@ -568,14 +582,18 @@ export abstract class MongoBaseService<T = any> {
 
   async deleteById(id: string | ObjectId): Promise<boolean> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    const result = await this.dao.delete(this.collectionName, { _id: objectId });
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
+    const result = await this.dao.delete(this.collectionName, {
+      _id: objectId,
+    });
     return result.rowsAffected > 0;
   }
 
   async deleteMany(filter: Record<string, any>): Promise<number> {
     await this.init();
-    const result = await this.dao.delete(this.collectionName, filter, { multi: true });
+    const result = await this.dao.delete(this.collectionName, filter, {
+      multi: true,
+    });
     return result.rowsAffected;
   }
 
@@ -600,23 +618,23 @@ export abstract class MongoBaseService<T = any> {
     limitOffset?: LimitOffset
   ): Promise<T[]> {
     await this.init();
-    
+
     const filter = this.dao.buildMongoQuery(wheres);
     const options: MongoQueryOptions = {};
-    
+
     if (orderBys && orderBys.length > 0) {
       options.sort = this.dao.buildMongoSort(orderBys);
     }
-    
+
     if (limitOffset?.limit) {
       options.limit = limitOffset.limit;
     }
-    
+
     if (limitOffset?.offset) {
       options.skip = limitOffset.offset;
     }
-    
-    return await this.dao.find(this.collectionName, filter, options) as T[];
+
+    return (await this.dao.find(this.collectionName, filter, options)) as T[];
   }
 
   /**
@@ -639,22 +657,26 @@ export abstract class MongoBaseService<T = any> {
     };
   }> {
     await this.init();
-    
+
     const skip = (page - 1) * pageSize;
     const total = await this.dao.count(this.collectionName, filter);
     const totalPages = Math.ceil(total / pageSize);
-    
+
     const options: MongoQueryOptions = {
       limit: pageSize,
-      skip: skip
+      skip: skip,
     };
-    
+
     if (sort) {
       options.sort = sort;
     }
-    
-    const data = await this.dao.find(this.collectionName, filter, options) as T[];
-    
+
+    const data = (await this.dao.find(
+      this.collectionName,
+      filter,
+      options
+    )) as T[];
+
     return {
       data,
       pagination: {
@@ -663,8 +685,8 @@ export abstract class MongoBaseService<T = any> {
         total,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -678,19 +700,23 @@ export abstract class MongoBaseService<T = any> {
     options?: MongoQueryOptions
   ): Promise<T[]> {
     await this.init();
-    
+
     const searchFilter: Record<string, any> = {
-      $or: searchFields.map(field => ({
-        [field]: { $regex: searchText, $options: 'i' }
-      }))
+      $or: searchFields.map((field) => ({
+        [field]: { $regex: searchText, $options: "i" },
+      })),
     };
-    
+
     const combinedFilter = {
       ...additionalFilter,
-      ...searchFilter
+      ...searchFilter,
     };
-    
-    return await this.dao.find(this.collectionName, combinedFilter, options) as T[];
+
+    return (await this.dao.find(
+      this.collectionName,
+      combinedFilter,
+      options
+    )) as T[];
   }
 
   // ========================== AGGREGATION OPERATIONS ==========================
@@ -708,16 +734,16 @@ export abstract class MongoBaseService<T = any> {
     filter: Record<string, any> = {}
   ): Promise<Array<{ _id: any; count: number }>> {
     const pipeline: AggregationPipeline[] = [];
-    
+
     if (Object.keys(filter).length > 0) {
       pipeline.push({ $match: filter });
     }
-    
+
     pipeline.push(
       { $group: { _id: `$${groupField}`, count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     );
-    
+
     return await this.aggregate(pipeline);
   }
 
@@ -735,11 +761,11 @@ export abstract class MongoBaseService<T = any> {
     max: number;
   }> {
     const pipeline: AggregationPipeline[] = [];
-    
+
     if (Object.keys(filter).length > 0) {
       pipeline.push({ $match: filter });
     }
-    
+
     pipeline.push({
       $group: {
         _id: null,
@@ -747,19 +773,21 @@ export abstract class MongoBaseService<T = any> {
         sum: { $sum: `$${numericField}` },
         avg: { $avg: `$${numericField}` },
         min: { $min: `$${numericField}` },
-        max: { $max: `$${numericField}` }
-      }
+        max: { $max: `$${numericField}` },
+      },
     });
-    
+
     const result = await this.aggregate(pipeline);
-    
-    return result[0] || {
-      count: 0,
-      sum: 0,
-      avg: 0,
-      min: 0,
-      max: 0
-    };
+
+    return (
+      result[0] || {
+        count: 0,
+        sum: 0,
+        avg: 0,
+        min: 0,
+        max: 0,
+      }
+    );
   }
 
   // ========================== BULK OPERATIONS ==========================
@@ -772,35 +800,39 @@ export abstract class MongoBaseService<T = any> {
     batchSize: number = 1000
   ): Promise<ImportResult> {
     await this.init();
-    
+
     const startTime = Date.now();
     let successCount = 0;
     let errorCount = 0;
-    const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-    
+    const errors: Array<{
+      rowIndex: number;
+      error: string;
+      rowData: Record<string, any>;
+    }> = [];
+
     try {
       const result = await this.dao.bulkInsert(
         this.collectionName,
         documents as Record<string, any>[],
         batchSize
       );
-      
+
       successCount = result.rowsAffected;
     } catch (error) {
       errorCount = documents.length;
       errors.push({
         rowIndex: 0,
         error: (error as Error).message,
-        rowData: {}
+        rowData: {},
       });
     }
-    
+
     return {
       totalRows: documents.length,
       successRows: successCount,
       errorRows: errorCount,
       errors,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 
@@ -813,14 +845,12 @@ export abstract class MongoBaseService<T = any> {
     options?: { upsert?: boolean }
   ): Promise<number> {
     await this.init();
-    
-    const result = await this.dao.update(
-      this.collectionName,
-      filter,
-      update,
-      { multi: true, upsert: options?.upsert }
-    );
-    
+
+    const result = await this.dao.update(this.collectionName, filter, update, {
+      multi: true,
+      upsert: options?.upsert,
+    });
+
     return result.rowsAffected;
   }
 
@@ -829,8 +859,10 @@ export abstract class MongoBaseService<T = any> {
    */
   async bulkDelete(filter: Record<string, any>): Promise<number> {
     await this.init();
-    
-    const result = await this.dao.delete(this.collectionName, filter, { multi: true });
+
+    const result = await this.dao.delete(this.collectionName, filter, {
+      multi: true,
+    });
     return result.rowsAffected;
   }
 
@@ -839,7 +871,7 @@ export abstract class MongoBaseService<T = any> {
   async executeTransaction<R>(callback: () => Promise<R>): Promise<R> {
     await this.init();
     await this.dao.beginTransaction();
-    
+
     try {
       const result = await callback();
       await this.dao.commitTransaction();
@@ -881,73 +913,86 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<ImportResult> {
     await this.init();
-    
+
     const batchSize = options?.batchSize || 1000;
     const startTime = Date.now();
     let successCount = 0;
     let errorCount = 0;
-    const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-    
+    const errors: Array<{
+      rowIndex: number;
+      error: string;
+      rowData: Record<string, any>;
+    }> = [];
+
     // Transform records from SQLite to MongoDB format
-    const transformedRecords = records.map((record, index) => {
-      try {
-        let transformed = this.dao.sqliteToMongoFormat(record);
-        
-        if (options?.transformRecord) {
-          transformed = options.transformRecord(transformed);
+    const transformedRecords = records
+      .map((record, index) => {
+        try {
+          let transformed = this.dao.sqliteToMongoFormat(record);
+
+          if (options?.transformRecord) {
+            transformed = options.transformRecord(transformed);
+          }
+
+          return transformed;
+        } catch (error) {
+          if (!options?.skipErrors) {
+            throw error;
+          }
+
+          errors.push({
+            rowIndex: index,
+            error: (error as Error).message,
+            rowData: record,
+          });
+          errorCount++;
+          return null;
         }
-        
-        return transformed;
-      } catch (error) {
-        if (!options?.skipErrors) {
-          throw error;
-        }
-        
-        errors.push({
-          rowIndex: index,
-          error: (error as Error).message,
-          rowData: record
-        });
-        errorCount++;
-        return null;
-      }
-    }).filter(record => record !== null);
-    
+      })
+      .filter((record) => record !== null);
+
     // Batch insert
     for (let i = 0; i < transformedRecords.length; i += batchSize) {
       try {
         const batch = transformedRecords.slice(i, i + batchSize);
-        const result = await this.dao.bulkInsert(this.collectionName, batch, batchSize);
+        const result = await this.dao.bulkInsert(
+          this.collectionName,
+          batch,
+          batchSize
+        );
         successCount += result.rowsAffected;
-        
+
         if (options?.onProgress) {
-          options.onProgress(Math.min(i + batchSize, transformedRecords.length), records.length);
+          options.onProgress(
+            Math.min(i + batchSize, transformedRecords.length),
+            records.length
+          );
         }
       } catch (error) {
         const batchStart = i;
         const batchEnd = Math.min(i + batchSize, transformedRecords.length);
-        
+
         for (let j = batchStart; j < batchEnd; j++) {
           errors.push({
             rowIndex: j,
             error: (error as Error).message,
-            rowData: transformedRecords[j]
+            rowData: transformedRecords[j],
           });
           errorCount++;
         }
-        
+
         if (!options?.skipErrors) {
           break;
         }
       }
     }
-    
+
     return {
       totalRows: records.length,
       successRows: successCount,
       errorRows: errorCount,
       errors,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 
@@ -963,26 +1008,30 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<Record<string, any>[]> {
     await this.init();
-    
+
     const queryOptions: MongoQueryOptions = {};
-    
+
     if (options?.limit) {
       queryOptions.limit = options.limit;
     }
-    
+
     if (options?.sort) {
       queryOptions.sort = options.sort;
     }
-    
-    const records = await this.dao.find(this.collectionName, filter, queryOptions);
-    
-    return records.map(record => {
+
+    const records = await this.dao.find(
+      this.collectionName,
+      filter,
+      queryOptions
+    );
+
+    return records.map((record) => {
       let transformed = this.dao.mongoToSQLiteFormat(record);
-      
+
       if (options?.transformRecord) {
         transformed = options.transformRecord(transformed);
       }
-      
+
       return transformed;
     });
   }
@@ -1000,16 +1049,18 @@ export abstract class MongoBaseService<T = any> {
     indexes: any[];
   }> {
     await this.init();
-    
+
     const count = await this.dao.count(this.collectionName);
-    const collectionInfo = await this.dao.getCollectionInfo(this.collectionName);
-    
+    const collectionInfo = await this.dao.getCollectionInfo(
+      this.collectionName
+    );
+
     return {
       name: this.collectionName,
       count,
       averageSize: 0, // MongoDB doesn't provide this directly
-      totalSize: 0,   // MongoDB doesn't provide this directly
-      indexes: collectionInfo.indexes
+      totalSize: 0, // MongoDB doesn't provide this directly
+      indexes: collectionInfo.indexes,
     };
   }
 
@@ -1017,7 +1068,7 @@ export abstract class MongoBaseService<T = any> {
    * Create index on collection
    */
   async createIndex(
-    keys: Record<string, 1 | -1 | 'text' | '2dsphere'>,
+    keys: Record<string, 1 | -1 | "text" | "2dsphere">,
     options?: {
       name?: string;
       unique?: boolean;
@@ -1027,8 +1078,8 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<void> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     await collection.createIndex(keys, options);
   }
 
@@ -1037,18 +1088,21 @@ export abstract class MongoBaseService<T = any> {
    */
   async dropIndex(indexName: string): Promise<void> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     await collection.dropIndex(indexName);
   }
 
   /**
    * Get distinct values for a field
    */
-  async distinct(field: string, filter: Record<string, any> = {}): Promise<any[]> {
+  async distinct(
+    field: string,
+    filter: Record<string, any> = {}
+  ): Promise<any[]> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     return await collection.distinct(field, filter);
   }
 
@@ -1065,14 +1119,14 @@ export abstract class MongoBaseService<T = any> {
    */
   async getFirst(sort?: Record<string, 1 | -1>): Promise<T | null> {
     await this.init();
-    
+
     const options: MongoQueryOptions = { limit: 1 };
     if (sort) {
       options.sort = sort;
     }
-    
+
     const results = await this.dao.find(this.collectionName, {}, options);
-    return results[0] as T || null;
+    return (results[0] as T) || null;
   }
 
   /**
@@ -1080,31 +1134,34 @@ export abstract class MongoBaseService<T = any> {
    */
   async getLast(sort?: Record<string, 1 | -1>): Promise<T | null> {
     await this.init();
-    
+
     const defaultSort = sort || { _id: -1 };
-    const options: MongoQueryOptions = { 
+    const options: MongoQueryOptions = {
       limit: 1,
-      sort: defaultSort
+      sort: defaultSort,
     };
-    
+
     const results = await this.dao.find(this.collectionName, {}, options);
-    return results[0] as T || null;
+    return (results[0] as T) || null;
   }
 
   /**
    * Validate document against schema rules
    */
-  protected validateDocument(document: Partial<T>): { isValid: boolean; errors: string[] } {
+  protected validateDocument(document: Partial<T>): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
-    
+
     // Basic validation - can be overridden in subclasses
-    if (!document || typeof document !== 'object') {
-      errors.push('Document must be an object');
+    if (!document || typeof document !== "object") {
+      errors.push("Document must be an object");
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -1113,24 +1170,27 @@ export abstract class MongoBaseService<T = any> {
    */
   async createValidated(data: Partial<T>): Promise<T> {
     const validation = this.validateDocument(data);
-    
+
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
-    
+
     return await this.create(data);
   }
 
   /**
    * Update document with validation
    */
-  async updateValidated(id: string | ObjectId, update: Partial<T>): Promise<boolean> {
+  async updateValidated(
+    id: string | ObjectId,
+    update: Partial<T>
+  ): Promise<boolean> {
     const validation = this.validateDocument(update);
-    
+
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
-    
+
     return await this.updateById(id, update);
   }
 
@@ -1155,15 +1215,964 @@ export abstract class MongoBaseService<T = any> {
   /**
    * Cleanup expired documents (requires expiration field)
    */
-  async cleanupExpired(expirationField: string = 'expiresAt'): Promise<number> {
+  async cleanupExpired(expirationField: string = "expiresAt"): Promise<number> {
     const filter = {
-      [expirationField]: { $lt: new Date() }
+      [expirationField]: { $lt: new Date() },
     };
-    
+
     return await this.deleteMany(filter);
   }
 }
+```
 
+```ts
+// src/core/database-manager.ts
+
+import {
+  DatabaseSchema,
+  ImportOptions,
+  ImportResult,
+  ColumnMapping,
+  MongoClientOptions,
+} from "../types";
+import { MongoDatabaseFactory } from "./database-factory";
+import { MongoUniversalDAO } from "./universal-dao";
+
+export type MongoDatabaseConnections = {
+  [key: string]: MongoUniversalDAO;
+};
+
+export interface MongoRoleConfig {
+  roleName: string;
+  requiredDatabases: string[];
+  optionalDatabases?: string[];
+  priority?: number;
+}
+
+export type MongoRoleRegistry = {
+  [roleName: string]: MongoRoleConfig;
+};
+
+export interface MongoDatabaseImportConfig {
+  databaseKey: string;
+  collectionName: string;
+  data: Record<string, any>[];
+  options?: Partial<ImportOptions>;
+  columnMappings?: ColumnMapping[];
+}
+
+export interface MongoBulkImportResult {
+  totalDatabases: number;
+  successDatabases: number;
+  results: Record<string, ImportResult>;
+  errors: Record<string, Error>;
+  executionTime: number;
+}
+
+export interface MongoSchemaManager {
+  getSchema(key: string): DatabaseSchema | undefined;
+  registerSchema(key: string, schema: DatabaseSchema): void;
+  getAllSchemaKeys(): string[];
+  hasSchema(key: string): boolean;
+}
+
+export class MongoDatabaseManager {
+  private static maxConnections = 10;
+  private static connections: MongoDatabaseConnections = {};
+  private static isInitialized = false;
+  private static roleRegistry: MongoRoleRegistry = {};
+  private static currentRole: string | null = null;
+  private static currentUserRoles: string[] = [];
+  private static activeDatabases: Set<string> = new Set();
+  private static isClosingConnections = false;
+
+  // Connection configuration
+  private static defaultConnectionString = "mongodb://localhost:27017";
+  private static connectionOptions: MongoClientOptions = {};
+
+  // Schema management
+  private static schemaConfigurations: Record<string, DatabaseSchema> = {};
+  private static schemaManager: MongoSchemaManager | null = null;
+
+  // Event system for database reconnection
+  private static eventListeners: Map<
+    string,
+    Array<(dao: MongoUniversalDAO) => void>
+  > = new Map();
+
+  // ========================== CONNECTION CONFIGURATION ==========================
+
+  /**
+   * Set default MongoDB connection string
+   */
+  public static setConnectionString(connectionString: string): void {
+    this.defaultConnectionString = connectionString;
+  }
+
+  /**
+   * Set MongoDB connection options
+   */
+  public static setConnectionOptions(options: MongoClientOptions): void {
+    this.connectionOptions = { ...options };
+  }
+
+  /**
+   * Get current connection string
+   */
+  public static getConnectionString(): string {
+    return this.defaultConnectionString;
+  }
+
+  /**
+   * Get the maximum number of allowed database connections
+   */
+  public static getMaxConnections(): number {
+    return this.maxConnections;
+  }
+
+  /**
+   * Set the maximum number of allowed database connections
+   */
+  public static setMaxConnections(maxConnections: number): void {
+    if (maxConnections <= 0) {
+      throw new Error("Maximum connections must be a positive number");
+    }
+
+    const currentConnectionCount = Object.keys(this.connections).length;
+    if (currentConnectionCount > maxConnections) {
+      throw new Error(
+        `Cannot set maximum connections to ${maxConnections}. ` +
+          `Current active connections (${currentConnectionCount}) exceed the new limit. ` +
+          `Please close some connections first.`
+      );
+    }
+
+    this.maxConnections = maxConnections;
+  }
+
+  // ========================== SCHEMA MANAGEMENT ==========================
+
+  /**
+   * Set a schema manager for dynamic schema handling
+   */
+  public static setSchemaManager(manager: MongoSchemaManager): void {
+    this.schemaManager = manager;
+  }
+
+  /**
+   * Register a schema configuration dynamically
+   */
+  public static registerSchema(key: string, schema: DatabaseSchema): void {
+    this.schemaConfigurations[key] = schema;
+  }
+
+  /**
+   * Register multiple schemas at once
+   */
+  public static registerSchemas(schemas: Record<string, DatabaseSchema>): void {
+    Object.entries(schemas).forEach(([key, schema]) => {
+      this.registerSchema(key, schema);
+    });
+  }
+
+  /**
+   * Get schema from internal store or external manager
+   */
+  private static getSchema(key: string): DatabaseSchema | undefined {
+    // Try internal schemas first
+    if (this.schemaConfigurations[key]) {
+      return this.schemaConfigurations[key];
+    }
+
+    // Try external schema manager
+    if (this.schemaManager) {
+      const schema = this.schemaManager.getSchema(key);
+      if (schema) {
+        return schema;
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Get all available schema keys
+   */
+  public static getAvailableSchemas(): string[] {
+    const internalKeys = Object.keys(this.schemaConfigurations);
+    const externalKeys = this.schemaManager?.getAllSchemaKeys() || [];
+    return [...new Set([...internalKeys, ...externalKeys])];
+  }
+
+  // ========================== ROLE MANAGEMENT ==========================
+
+  /**
+   * Register a role configuration
+   */
+  public static registerRole(roleConfig: MongoRoleConfig): void {
+    this.roleRegistry[roleConfig.roleName] = roleConfig;
+  }
+
+  /**
+   * Register multiple roles
+   */
+  public static registerRoles(roleConfigs: MongoRoleConfig[]): void {
+    roleConfigs.forEach((config) => this.registerRole(config));
+  }
+
+  /**
+   * Get all registered roles
+   */
+  public static getRegisteredRoles(): MongoRoleRegistry {
+    return { ...this.roleRegistry };
+  }
+
+  /**
+   * Get databases for a specific role
+   */
+  public static getRoleDatabases(roleName: string): string[] {
+    const roleConfig = this.roleRegistry[roleName];
+    if (!roleConfig) {
+      throw new Error(`Role '${roleName}' is not registered.`);
+    }
+
+    return [
+      ...roleConfig.requiredDatabases,
+      ...(roleConfig.optionalDatabases || []),
+    ];
+  }
+
+  /**
+   * Get databases for current user roles
+   */
+  public static getCurrentUserDatabases(): string[] {
+    const allDatabases = new Set<string>();
+    allDatabases.add("core"); // Core database is always included
+
+    for (const roleName of this.currentUserRoles) {
+      const roleConfig = this.roleRegistry[roleName];
+      if (roleConfig) {
+        roleConfig.requiredDatabases.forEach((db) => allDatabases.add(db));
+        if (roleConfig.optionalDatabases) {
+          roleConfig.optionalDatabases.forEach((db) => allDatabases.add(db));
+        }
+      }
+    }
+
+    return Array.from(allDatabases);
+  }
+
+  // ========================== CONNECTION MANAGEMENT ==========================
+
+  /**
+   * Initialize core database connection
+   */
+  public static async initializeCoreConnection(): Promise<void> {
+    if (this.connections["core"]) {
+      return;
+    }
+
+    try {
+      const coreSchema = this.getSchema("core");
+      if (!coreSchema) {
+        throw new Error("Core database schema not found.");
+      }
+
+      const dao = await MongoDatabaseFactory.createFromSchema(
+        coreSchema,
+        this.defaultConnectionString,
+        this.connectionOptions
+      );
+
+      this.connections["core"] = dao;
+    } catch (error) {
+      throw new Error(
+        `Error initializing core database: ${(error as Error).message}`
+      );
+    }
+  }
+
+  /**
+   * Set current user roles and initialize connections
+   */
+  public static async setCurrentUserRoles(
+    userRoles: string[],
+    primaryRole?: string
+  ): Promise<void> {
+    // Validate roles exist
+    for (const roleName of userRoles) {
+      if (!this.roleRegistry[roleName]) {
+        throw new Error(
+          `Role '${roleName}' is not registered. Please register it first.`
+        );
+      }
+    }
+
+    const previousRoles = [...this.currentUserRoles];
+    this.currentUserRoles = userRoles;
+    this.currentRole = primaryRole || userRoles[0] || null;
+
+    try {
+      await this.initializeUserRoleConnections();
+      await this.cleanupUnusedConnections(previousRoles);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get current user roles
+   */
+  public static getCurrentUserRoles(): string[] {
+    return [...this.currentUserRoles];
+  }
+
+  /**
+   * Get current primary role
+   */
+  public static getCurrentRole(): string | null {
+    return this.currentRole;
+  }
+
+  /**
+   * Initialize connections for current user roles
+   */
+  private static async initializeUserRoleConnections(): Promise<void> {
+    const requiredDatabases = this.getCurrentUserDatabases();
+    const failedInitializations: { key: string; error: Error }[] = [];
+
+    const initPromises = requiredDatabases.map(async (dbKey) => {
+      if (this.connections[dbKey]) {
+        return; // Already connected
+      }
+
+      try {
+        const schema = this.getSchema(dbKey);
+        if (!schema) {
+          throw new Error(
+            `Database key '${dbKey}' not found in schema configurations.`
+          );
+        }
+
+        const dao = await MongoDatabaseFactory.createFromSchema(
+          schema,
+          this.defaultConnectionString,
+          this.connectionOptions
+        );
+
+        this.connections[dbKey] = dao;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+
+        // Check if database is required for any role
+        const isRequired = this.currentUserRoles.some((roleName) => {
+          const roleConfig = this.roleRegistry[roleName];
+          return roleConfig && roleConfig.requiredDatabases.includes(dbKey);
+        });
+
+        if (isRequired) {
+          failedInitializations.push({ key: dbKey, error: err });
+        }
+        // Optional databases that fail are ignored
+      }
+    });
+
+    await Promise.all(initPromises);
+
+    if (failedInitializations.length > 0) {
+      const errorSummary = failedInitializations
+        .map((f) => `  - ${f.key}: ${f.error.message}`)
+        .join("\n");
+      throw new Error(
+        `Failed to initialize required databases for user roles:\n${errorSummary}`
+      );
+    }
+  }
+
+  /**
+   * Cleanup unused connections
+   */
+  private static async cleanupUnusedConnections(
+    previousRoles: string[]
+  ): Promise<void> {
+    const previousDatabases = new Set<string>();
+    previousDatabases.add("core");
+
+    for (const roleName of previousRoles) {
+      const roleConfig = this.roleRegistry[roleName];
+      if (roleConfig) {
+        roleConfig.requiredDatabases.forEach((db) => previousDatabases.add(db));
+        if (roleConfig.optionalDatabases) {
+          roleConfig.optionalDatabases.forEach((db) =>
+            previousDatabases.add(db)
+          );
+        }
+      }
+    }
+
+    const currentDatabases = new Set(this.getCurrentUserDatabases());
+    const databasesToClose = Array.from(previousDatabases).filter(
+      (db) => !currentDatabases.has(db)
+    );
+
+    if (databasesToClose.length > 0) {
+      for (const dbKey of databasesToClose) {
+        if (this.connections[dbKey]) {
+          try {
+            await this.connections[dbKey].disconnect();
+            delete this.connections[dbKey];
+          } catch (error) {
+            // Log error but continue cleanup
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Check if current user has access to database
+   */
+  public static hasAccessToDatabase(dbKey: string): boolean {
+    return this.getSchema(dbKey) !== undefined;
+  }
+
+  /**
+   * Get database connection
+   */
+  public static get(key: string): MongoUniversalDAO {
+    if (!this.hasAccessToDatabase(key)) {
+      throw new Error(`Access denied: Database '${key}' is not accessible.`);
+    }
+
+    const dao = this.connections[key];
+    if (!dao) {
+      throw new Error(
+        `Database '${key}' is not connected. Please ensure it's initialized.`
+      );
+    }
+
+    return dao;
+  }
+
+  // ========================== EVENT MANAGEMENT ==========================
+
+  /**
+   * Register event listener for database reconnection
+   */
+  public static onDatabaseReconnect(
+    schemaName: string,
+    callback: (dao: MongoUniversalDAO) => void
+  ): void {
+    if (!this.eventListeners.has(schemaName)) {
+      this.eventListeners.set(schemaName, []);
+    }
+    this.eventListeners.get(schemaName)!.push(callback);
+  }
+
+  /**
+   * Remove event listener for database reconnection
+   */
+  public static offDatabaseReconnect(
+    schemaName: string,
+    callback: (dao: MongoUniversalDAO) => void
+  ): void {
+    const listeners = this.eventListeners.get(schemaName);
+    if (listeners) {
+      const index = listeners.indexOf(callback);
+      if (index > -1) {
+        listeners.splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Notify listeners of database reconnection
+   */
+  private static notifyDatabaseReconnect(
+    schemaName: string,
+    dao: MongoUniversalDAO
+  ): void {
+    const listeners = this.eventListeners.get(schemaName);
+    if (listeners) {
+      listeners.forEach((callback) => {
+        try {
+          callback(dao);
+        } catch (error) {
+          // Handle callback errors gracefully
+        }
+      });
+    }
+  }
+
+  // ========================== DATABASE OPERATIONS ==========================
+
+  /**
+   * Close all connections
+   */
+  private static async closeAllConnections(): Promise<void> {
+    if (this.isClosingConnections) {
+      return;
+    }
+
+    this.isClosingConnections = true;
+    try {
+      // Save active databases
+      const currentActiveDb = Object.keys(this.connections);
+      currentActiveDb.forEach((dbKey) => this.activeDatabases.add(dbKey));
+
+      const closePromises = Object.entries(this.connections).map(
+        async ([dbKey, dao]) => {
+          try {
+            await dao.disconnect();
+          } catch (error) {
+            // Log error but continue closing
+          }
+        }
+      );
+
+      await Promise.all(closePromises);
+      this.connections = {};
+    } finally {
+      this.isClosingConnections = false;
+    }
+  }
+
+  /**
+   * Reopen connections
+   */
+  public static async reopenConnections(): Promise<void> {
+    try {
+      await this.initializeCoreConnection();
+
+      if (this.currentUserRoles.length > 0) {
+        await this.initializeUserRoleConnections();
+      }
+
+      // Reinitialize previously active databases
+      const activeDbArray = Array.from(this.activeDatabases);
+
+      if (activeDbArray.length > 0) {
+        for (const dbKey of activeDbArray) {
+          if (!this.connections[dbKey]) {
+            const schema = this.getSchema(dbKey);
+            if (schema) {
+              try {
+                const dao = await MongoDatabaseFactory.createFromSchema(
+                  schema,
+                  this.defaultConnectionString,
+                  this.connectionOptions
+                );
+                this.connections[dbKey] = dao;
+                this.notifyDatabaseReconnect(dbKey, dao);
+              } catch (error) {
+                // Log error but continue
+              }
+            }
+          } else if (this.connections[dbKey]) {
+            // Database exists, notify services
+            this.notifyDatabaseReconnect(dbKey, this.connections[dbKey]);
+          }
+        }
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Ensure database connection exists and is active
+   */
+  public static async ensureDatabaseConnection(
+    key: string
+  ): Promise<MongoUniversalDAO> {
+    this.activeDatabases.add(key);
+
+    if (!this.hasAccessToDatabase(key)) {
+      throw new Error(`Access denied: Database '${key}' is not accessible.`);
+    }
+
+    if (this.connections[key]) {
+      try {
+        const isConnected = this.connections[key].isConnectionOpen();
+        if (isConnected) {
+          return this.connections[key];
+        } else {
+          // Clean up inactive connection
+          try {
+            await this.connections[key].disconnect().catch(() => {});
+          } catch (error) {
+            // Ignore cleanup errors
+          }
+          delete this.connections[key];
+        }
+      } catch (error) {
+        delete this.connections[key];
+      }
+    }
+
+    // Create new connection
+    return await this.getLazyLoading(key);
+  }
+
+  /**
+   * Get all connections
+   */
+  public static getConnections(): MongoDatabaseConnections {
+    return { ...this.connections };
+  }
+
+  /**
+   * Open all existing databases
+   */
+  public static async openAllExisting(
+    databaseKeys: string[]
+  ): Promise<boolean> {
+    const failedOpens: { key: string; error: Error }[] = [];
+
+    for (const key of databaseKeys) {
+      try {
+        const schema = this.getSchema(key);
+        if (!schema) {
+          throw new Error(`Invalid database key: ${key}. Schema not found.`);
+        }
+
+        const dao = await MongoDatabaseFactory.createFromSchema(
+          schema,
+          this.defaultConnectionString,
+          this.connectionOptions
+        );
+
+        this.connections[key] = dao;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        failedOpens.push({ key, error: err });
+      }
+    }
+
+    if (failedOpens.length > 0) {
+      const errorSummary = failedOpens
+        .map((f) => `  - ${f.key}: ${f.error.message}`)
+        .join("\n");
+      throw new Error(`Failed to open one or more databases:\n${errorSummary}`);
+    }
+
+    this.isInitialized = true;
+    return true;
+  }
+
+  /**
+   * Initialize databases lazily
+   */
+  public static async initLazySchema(databaseKeys: string[]): Promise<boolean> {
+    const invalidKeys = databaseKeys.filter((key) => !this.getSchema(key));
+    if (invalidKeys.length > 0) {
+      throw new Error(
+        `Invalid database keys: ${invalidKeys.join(", ")}. Schemas not found.`
+      );
+    }
+
+    const newConnectionsCount = databaseKeys.filter(
+      (key) => !this.connections[key]
+    ).length;
+    const currentConnectionsCount = Object.keys(this.connections).length;
+
+    if (currentConnectionsCount + newConnectionsCount > this.maxConnections) {
+      throw new Error(
+        `Cannot initialize ${newConnectionsCount} new connections. Would exceed maximum of ${this.maxConnections} connections. Current: ${currentConnectionsCount}`
+      );
+    }
+
+    const failedInitializations: { key: string; error: Error }[] = [];
+    const initPromises = databaseKeys.map(async (key) => {
+      if (this.connections[key]) {
+        return; // Already initialized
+      }
+
+      try {
+        const schema = this.getSchema(key)!;
+        const dao = await MongoDatabaseFactory.createFromSchema(
+          schema,
+          this.defaultConnectionString,
+          this.connectionOptions
+        );
+        this.connections[key] = dao;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        failedInitializations.push({ key, error: err });
+      }
+    });
+
+    await Promise.all(initPromises);
+
+    if (failedInitializations.length > 0) {
+      const errorSummary = failedInitializations
+        .map((f) => `  - ${f.key}: ${f.error.message}`)
+        .join("\n");
+      throw new Error(
+        `Failed to initialize one or more databases:\n${errorSummary}`
+      );
+    }
+
+    if (Object.keys(this.connections).length > 0) {
+      this.isInitialized = true;
+    }
+
+    return true;
+  }
+
+  /**
+   * Initialize all available databases
+   */
+  public static async initializeAll(): Promise<void> {
+    if (this.isInitialized) {
+      return;
+    }
+
+    const availableSchemas = this.getAvailableSchemas();
+    const failedInitializations: { key: string; error: Error }[] = [];
+
+    const initPromises = availableSchemas.map(async (key) => {
+      try {
+        const schema = this.getSchema(key)!;
+        const dao = await MongoDatabaseFactory.createFromSchema(
+          schema,
+          this.defaultConnectionString,
+          this.connectionOptions
+        );
+        this.connections[key] = dao;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        failedInitializations.push({ key, error: err });
+      }
+    });
+
+    await Promise.all(initPromises);
+
+    if (failedInitializations.length > 0) {
+      this.isInitialized = false;
+      const errorSummary = failedInitializations
+        .map((f) => `  - ${f.key}: ${f.error.message}`)
+        .join("\n");
+      throw new Error(
+        `Failed to initialize one or more databases:\n${errorSummary}`
+      );
+    }
+
+    this.isInitialized = true;
+  }
+
+  /**
+   * Get database with lazy loading
+   */
+  public static async getLazyLoading(key: string): Promise<MongoUniversalDAO> {
+    this.activeDatabases.add(key);
+
+    if (!this.hasAccessToDatabase(key)) {
+      throw new Error(`Access denied: Database '${key}' is not accessible.`);
+    }
+
+    if (!this.connections[key]) {
+      const schema = this.getSchema(key);
+      if (!schema) {
+        throw new Error(`Invalid database key: ${key}. Schema not found.`);
+      }
+
+      if (Object.keys(this.connections).length >= this.maxConnections) {
+        throw new Error("Maximum number of database connections reached");
+      }
+
+      const dao = await MongoDatabaseFactory.createFromSchema(
+        schema,
+        this.defaultConnectionString,
+        this.connectionOptions
+      );
+      this.connections[key] = dao;
+    }
+
+    this.isInitialized = true;
+    return this.connections[key];
+  }
+
+  // ========================== TRANSACTION OPERATIONS ==========================
+
+  /**
+   * Execute cross-schema transaction
+   */
+  public static async executeCrossSchemaTransaction(
+    schemas: string[],
+    callback: (daos: Record<string, MongoUniversalDAO>) => Promise<void>
+  ): Promise<void> {
+    for (const key of schemas) {
+      if (!this.hasAccessToDatabase(key)) {
+        throw new Error(`Access denied: Database '${key}' is not accessible.`);
+      }
+    }
+
+    const daos = schemas.reduce((acc, key) => {
+      acc[key] = this.get(key);
+      return acc;
+    }, {} as Record<string, MongoUniversalDAO>);
+
+    try {
+      await Promise.all(
+        Object.values(daos).map((dao) => dao.beginTransaction())
+      );
+
+      await callback(daos);
+
+      await Promise.all(
+        Object.values(daos).map((dao) => dao.commitTransaction())
+      );
+    } catch (error) {
+      await Promise.all(
+        Object.values(daos).map((dao) => dao.rollbackTransaction())
+      );
+      throw error;
+    }
+  }
+
+  // ========================== IMPORT OPERATIONS ==========================
+
+  /**
+   * Import data to collection
+   */
+  public static async importDataToCollection(
+    databaseKey: string,
+    collectionName: string,
+    data: Record<string, any>[],
+    options: Partial<ImportOptions> = {}
+  ): Promise<ImportResult> {
+    if (!this.hasAccessToDatabase(databaseKey)) {
+      throw new Error(
+        `Access denied: Database '${databaseKey}' is not accessible.`
+      );
+    }
+
+    const dao = this.get(databaseKey);
+    try {
+      const result = await dao.bulkInsert(collectionName, data);
+      return {
+        totalRows: data.length,
+        successRows: result.rowsAffected,
+        errorRows: data.length - result.rowsAffected,
+        errors: [],
+        executionTime: 0,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Bulk import data
+   */
+  public static async bulkImport(
+    importConfigs: MongoDatabaseImportConfig[]
+  ): Promise<MongoBulkImportResult> {
+    const startTime = Date.now();
+    const result: MongoBulkImportResult = {
+      totalDatabases: importConfigs.length,
+      successDatabases: 0,
+      results: {},
+      errors: {},
+      executionTime: 0,
+    };
+
+    for (const config of importConfigs) {
+      const configKey = `${config.databaseKey}.${config.collectionName}`;
+
+      try {
+        if (!this.hasAccessToDatabase(config.databaseKey)) {
+          throw new Error(
+            `Access denied: Database '${config.databaseKey}' is not accessible.`
+          );
+        }
+
+        const importResult = await this.importDataToCollection(
+          config.databaseKey,
+          config.collectionName,
+          config.data,
+          config.options
+        );
+
+        result.results[configKey] = importResult;
+        result.successDatabases++;
+      } catch (error) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        result.errors[configKey] = err;
+      }
+    }
+
+    result.executionTime = Date.now() - startTime;
+    return result;
+  }
+
+  // ========================== UTILITY METHODS ==========================
+
+  /**
+   * Get connection count
+   */
+  public static getConnectionCount(): number {
+    return Object.keys(this.connections).length;
+  }
+
+  /**
+   * List all active connections
+   */
+  public static listConnections(): string[] {
+    return Object.keys(this.connections);
+  }
+
+  /**
+   * Close specific connection
+   */
+  public static async closeConnection(dbKey: string): Promise<void> {
+    const dao = this.connections[dbKey];
+    if (dao) {
+      try {
+        await dao.disconnect();
+        delete this.connections[dbKey];
+      } catch (error) {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Close all connections and reset state
+   */
+  public static async closeAll(): Promise<void> {
+    await this.closeAllConnections();
+
+    this.currentUserRoles = [];
+    this.currentRole = null;
+    this.isInitialized = false;
+    this.activeDatabases.clear();
+    this.eventListeners.clear();
+    this.isClosingConnections = false;
+  }
+
+  /**
+   * Logout user - close role-specific connections
+   */
+  public static async logout(): Promise<void> {
+    const connectionsToClose = Object.keys(this.connections).filter(
+      (key) => key !== "core"
+    );
+
+    for (const dbKey of connectionsToClose) {
+      try {
+        await this.connections[dbKey].disconnect();
+        delete this.connections[dbKey];
+      } catch (error) {
+        // Log error but continue cleanup
+      }
+    }
+
+    this.currentUserRoles = [];
+    this.currentRole = null;
+  }
+}
 ```
 
 ```ts
@@ -1215,7 +2224,7 @@ export class MongoDatabaseFactory {
   ): Promise<MongoUniversalDAO> {
     const dao = this.createDAO(connectionString, schema.database_name, options);
     await dao.connect();
-    
+
     // Use the new method that accepts DatabaseSchema
     await dao.initializeFromDatabaseSchema(schema);
     return dao;
@@ -1232,13 +2241,13 @@ export class MongoDatabaseFactory {
   ): Promise<MongoUniversalDAO> {
     const dao = this.createDAO(connectionString, customDatabaseName, options);
     await dao.connect();
-    
+
     // Create a modified schema with custom database name
     const modifiedSchema: DatabaseSchema = {
       ...schema,
-      database_name: customDatabaseName
+      database_name: customDatabaseName,
     };
-    
+
     await dao.initializeFromDatabaseSchema(modifiedSchema);
     return dao;
   }
@@ -1253,88 +2262,107 @@ export class MongoDatabaseFactory {
     options?: MongoClientOptions
   ): Promise<Record<string, MongoUniversalDAO>> {
     const daos: Record<string, MongoUniversalDAO> = {};
-    
+
     for (const dbName of databaseNames) {
       const dao = await this.createFromSchemaWithCustomDb(
-        schema, 
-        connectionString, 
-        dbName, 
+        schema,
+        connectionString,
+        dbName,
         options
       );
       daos[dbName] = dao;
     }
-    
+
     return daos;
   }
 
   /**
    * Validate schema before creating DAO
    */
-  static validateSchema(schema: DatabaseSchema): { isValid: boolean; errors: string[] } {
+  static validateSchema(schema: DatabaseSchema): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
-    
+
     // Check required fields
     if (!schema.version) {
       errors.push("Schema version is required");
     }
-    
+
     if (!schema.database_name) {
       errors.push("Database name is required");
     }
-    
+
     if (!schema.schemas || Object.keys(schema.schemas).length === 0) {
       errors.push("At least one collection schema is required");
     }
-    
+
     // Validate each collection schema
-    for (const [collectionName, collectionSchema] of Object.entries(schema.schemas || {})) {
+    for (const [collectionName, collectionSchema] of Object.entries(
+      schema.schemas || {}
+    )) {
       if (!collectionSchema.cols || collectionSchema.cols.length === 0) {
-        errors.push(`Collection '${collectionName}' must have at least one column`);
+        errors.push(
+          `Collection '${collectionName}' must have at least one column`
+        );
       }
-      
+
       // Check for duplicate column names
       const columnNames = new Set();
       for (const col of collectionSchema.cols) {
         if (!col.name) {
-          errors.push(`Collection '${collectionName}' has a column without name`);
+          errors.push(
+            `Collection '${collectionName}' has a column without name`
+          );
           continue;
         }
-        
+
         if (columnNames.has(col.name)) {
-          errors.push(`Collection '${collectionName}' has duplicate column name: ${col.name}`);
+          errors.push(
+            `Collection '${collectionName}' has duplicate column name: ${col.name}`
+          );
         }
         columnNames.add(col.name);
-        
+
         if (!col.type) {
-          errors.push(`Column '${col.name}' in collection '${collectionName}' must have a type`);
+          errors.push(
+            `Column '${col.name}' in collection '${collectionName}' must have a type`
+          );
         }
       }
-      
+
       // Validate indexes
       if (collectionSchema.indexes) {
         for (const index of collectionSchema.indexes) {
           if (!index.name) {
-            errors.push(`Collection '${collectionName}' has an index without name`);
+            errors.push(
+              `Collection '${collectionName}' has an index without name`
+            );
           }
-          
+
           if (!index.columns || index.columns.length === 0) {
-            errors.push(`Index '${index.name}' in collection '${collectionName}' must have at least one column`);
+            errors.push(
+              `Index '${index.name}' in collection '${collectionName}' must have at least one column`
+            );
           }
-          
+
           // Check if indexed columns exist
-          const availableColumns = collectionSchema.cols.map(col => col.name);
+          const availableColumns = collectionSchema.cols.map((col) => col.name);
           for (const indexColumn of index.columns || []) {
             if (!availableColumns.includes(indexColumn)) {
-              errors.push(`Index '${index.name}' in collection '${collectionName}' references non-existent column: ${indexColumn}`);
+              errors.push(
+                `Index '${index.name}' in collection '${collectionName}' references non-existent column: ${indexColumn}`
+              );
             }
           }
         }
       }
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -1347,17 +2375,19 @@ export class MongoDatabaseFactory {
     options?: MongoClientOptions & { throwOnValidationError?: boolean }
   ): Promise<MongoUniversalDAO> {
     const validation = this.validateSchema(schema);
-    
+
     if (!validation.isValid) {
-      const errorMessage = `Schema validation failed:\n${validation.errors.join('\n')}`;
-      
+      const errorMessage = `Schema validation failed:\n${validation.errors.join(
+        "\n"
+      )}`;
+
       if (options?.throwOnValidationError !== false) {
         throw new Error(errorMessage);
       } else {
         console.warn(errorMessage);
       }
     }
-    
+
     return await this.createFromSchema(schema, connectionString, options);
   }
 
@@ -1377,20 +2407,23 @@ export class MongoDatabaseFactory {
       hasValidation: boolean;
     }>;
   } {
-    const collections = Object.entries(schema.schemas || {}).map(([name, config]) => ({
-      name,
-      columnCount: config.cols?.length || 0,
-      indexCount: config.indexes?.length || 0,
-      hasValidation: config.cols?.some(col => col.enum || !col.nullable) || false
-    }));
-    
+    const collections = Object.entries(schema.schemas || {}).map(
+      ([name, config]) => ({
+        name,
+        columnCount: config.cols?.length || 0,
+        indexCount: config.indexes?.length || 0,
+        hasValidation:
+          config.cols?.some((col) => col.enum || !col.nullable) || false,
+      })
+    );
+
     return {
       version: schema.version,
       databaseName: schema.database_name,
       collectionCount: collections.length,
       totalColumns: collections.reduce((sum, col) => sum + col.columnCount, 0),
       totalIndexes: collections.reduce((sum, col) => sum + col.indexCount, 0),
-      collections
+      collections,
     };
   }
 
@@ -1400,7 +2433,7 @@ export class MongoDatabaseFactory {
   static async createWithConnectionTest(
     schema: DatabaseSchema,
     connectionString: string,
-    options?: MongoClientOptions & { 
+    options?: MongoClientOptions & {
       testTimeout?: number;
       retryAttempts?: number;
       retryDelay?: number;
@@ -1409,39 +2442,51 @@ export class MongoDatabaseFactory {
     const testTimeout = options?.testTimeout || 5000;
     const retryAttempts = options?.retryAttempts || 3;
     const retryDelay = options?.retryDelay || 1000;
-    
+
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= retryAttempts; attempt++) {
       try {
-        const dao = this.createDAO(connectionString, schema.database_name, options);
-        
+        const dao = this.createDAO(
+          connectionString,
+          schema.database_name,
+          options
+        );
+
         // Test connection with timeout
         const connectPromise = dao.connect();
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Connection timeout')), testTimeout);
+          setTimeout(
+            () => reject(new Error("Connection timeout")),
+            testTimeout
+          );
         });
-        
+
         await Promise.race([connectPromise, timeoutPromise]);
-        
+
         // Test database operations
         await dao.getDatabaseInfo();
-        
+
         // Initialize schema
         await dao.initializeFromDatabaseSchema(schema);
-        
+
         return dao;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`Connection attempt ${attempt}/${retryAttempts} failed:`, error);
-        
+        console.warn(
+          `Connection attempt ${attempt}/${retryAttempts} failed:`,
+          error
+        );
+
         if (attempt < retryAttempts) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
       }
     }
-    
-    throw new Error(`Failed to connect after ${retryAttempts} attempts. Last error: ${lastError?.message}`);
+
+    throw new Error(
+      `Failed to connect after ${retryAttempts} attempts. Last error: ${lastError?.message}`
+    );
   }
 
   /**
@@ -1449,7 +2494,7 @@ export class MongoDatabaseFactory {
    */
   static async cleanup(): Promise<void> {
     for (const adapter of this.adapters) {
-      if (typeof adapter.disconnectAll === 'function') {
+      if (typeof adapter.disconnectAll === "function") {
         await adapter.disconnectAll();
       }
     }
@@ -1464,14 +2509,13 @@ export class MongoDatabaseFactory {
     version?: string;
     isSupported: boolean;
   }> {
-    return this.adapters.map(adapter => ({
+    return this.adapters.map((adapter) => ({
       name: adapter.constructor.name,
       version: (adapter as any).version,
-      isSupported: adapter.isSupported()
+      isSupported: adapter.isSupported(),
     }));
   }
 }
-
 ```
 
 ```ts
@@ -2530,7 +3574,6 @@ export class MongoUniversalDAO {
     return sort;
   }
 }
-
 ```
 
 ```ts
@@ -2674,9 +3717,7 @@ export class MongoLoggerConfig {
     ) {
       console.log(
         "MongoLoggerConfig.updateConfiguration() - Configuration updated. Proxy loggers will use new settings automatically.",
-        `Active proxies: ${Array.from(
-          MongoLoggerConfig.proxyInstances.keys()
-        )}`
+        `Active proxies: ${Array.from(MongoLoggerConfig.proxyInstances.keys())}`
       );
     }
   }
@@ -2856,11 +3897,9 @@ export const LoggerUtils = {
     console.log("========================\n");
   },
 };
-
 ```
 
 ```ts
-
 // src/index.ts - Main exports for UniversalMongodb Library with Logger Integration
 // ========================== LOGGER EXPORTS ==========================
 export {
@@ -2878,5 +3917,4 @@ export { BaseMongoAdapter } from "./adapters/base-adapter";
 
 // ========================== TYPE EXPORTS ==========================
 export * from "./types";
-
 ```

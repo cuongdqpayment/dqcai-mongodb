@@ -1,5 +1,12 @@
 // src/types.ts
-import { MongoClient, Db, Collection, ObjectId, ClientSession, MongoClientOptions } from 'mongodb';
+import {
+  MongoClient,
+  Db,
+  Collection,
+  ObjectId,
+  ClientSession,
+  MongoClientOptions,
+} from "mongodb";
 
 // ========================== BASIC MONGODB TYPES ==========================
 export interface MongoConnection {
@@ -17,7 +24,11 @@ export interface MongoResult {
 
 export interface MongoAdapter {
   disconnect(connectionString: string, databaseName: string): unknown;
-  connect(connectionString: string, dbName: string, options?: MongoClientOptions): Promise<MongoConnection>;
+  connect(
+    connectionString: string,
+    dbName: string,
+    options?: MongoClientOptions
+  ): Promise<MongoConnection>;
   isSupported(): boolean;
 }
 
@@ -150,7 +161,7 @@ export interface DatabaseSchema {
 
 export interface MongoIndexDefinition {
   name: string;
-  keys: Record<string, 1 | -1 | 'text' | '2dsphere'>;
+  keys: Record<string, 1 | -1 | "text" | "2dsphere">;
   options?: {
     unique?: boolean;
     sparse?: boolean;
@@ -245,50 +256,50 @@ export interface HealthCheckResult {
 export const MONGODB_TYPE_MAPPING = {
   mongodb: {
     // String types
-    string: 'String',
-    varchar: 'String',
-    char: 'String',
-    text: 'String',
-    email: 'String',
-    url: 'String',
-    uuid: 'String',
-    
+    string: "String",
+    varchar: "String",
+    char: "String",
+    text: "String",
+    email: "String",
+    url: "String",
+    uuid: "String",
+
     // Numeric types
-    integer: 'Number',
-    int: 'Number',
-    bigint: 'Number',
-    smallint: 'Number',
-    tinyint: 'Number',
-    decimal: 'Number',
-    numeric: 'Number',
-    float: 'Number',
-    double: 'Number',
-    
+    integer: "Number",
+    int: "Number",
+    bigint: "Number",
+    smallint: "Number",
+    tinyint: "Number",
+    decimal: "Number",
+    numeric: "Number",
+    float: "Number",
+    double: "Number",
+
     // Boolean
-    boolean: 'Boolean',
-    bool: 'Boolean',
-    
+    boolean: "Boolean",
+    bool: "Boolean",
+
     // Date/Time types
-    timestamp: 'Date',
-    datetime: 'Date',
-    date: 'Date',
-    time: 'Date',
-    
+    timestamp: "Date",
+    datetime: "Date",
+    date: "Date",
+    time: "Date",
+
     // Complex types
-    json: 'Object',
-    array: 'Array',
-    object: 'Object',
-    
+    json: "Object",
+    array: "Array",
+    object: "Object",
+
     // Binary types
-    blob: 'Buffer',
-    binary: 'Buffer',
-    
+    blob: "Buffer",
+    binary: "Buffer",
+
     // MongoDB specific
-    objectid: 'ObjectId',
-    mixed: 'Mixed',
+    objectid: "ObjectId",
+    mixed: "Mixed",
     // Add index signature here
-    // [key: string]: string; 
-  }
+    // [key: string]: string;
+  },
 };
 
 // ========================== UTILITY TYPES ==========================
@@ -354,8 +365,8 @@ export interface MigrationMapping {
 }
 
 export interface MigrationConfig {
-  sourceType: 'sqlite' | 'mongodb';
-  targetType: 'sqlite' | 'mongodb';
+  sourceType: "sqlite" | "mongodb";
+  targetType: "sqlite" | "mongodb";
   mappings: MigrationMapping[];
   batchSize?: number;
   onProgress?: (processed: number, total: number) => void;
@@ -377,3 +388,55 @@ export interface ValidationRule {
 export interface SchemaValidation {
   [fieldName: string]: ValidationRule;
 }
+
+// Type definitions for MongoDB import options
+export interface MongoImportOptions {
+  collectionName: string;
+  data: Record<string, any>[];
+  batchSize?: number;
+  validateData?: boolean;
+  updateOnConflict?: boolean;
+  conflictColumns?: string[];
+  skipErrors?: boolean;
+  useTransaction?: boolean;
+  onProgress?: (processed: number, total: number) => void;
+  onError?: (
+    error: Error,
+    rowIndex: number,
+    rowData: Record<string, any>
+  ) => void;
+}
+
+// Transaction types
+export interface TransactionOperation {
+  type: "insert" | "update" | "delete" | "select";
+  table: QueryTable;
+}
+
+export interface ImportResult {
+  totalRows: number;
+  successRows: number;
+  errorRows: number;
+  errors: Array<{
+    rowIndex: number;
+    error: string;
+    rowData: Record<string, any>;
+  }>;
+  executionTime: number;
+}
+
+// Interface cho mapping column
+export interface ColumnMapping {
+  sourceColumn: string;
+  targetColumn: string;
+  transform?: (value: any) => any;
+}
+
+export {
+  MongoClient,
+  Db,
+  Collection,
+  ObjectId,
+  ClientSession,
+  type MongoClientOptions,
+};

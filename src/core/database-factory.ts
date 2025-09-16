@@ -1,9 +1,11 @@
 // src/core/database-factory.ts
 
-import { MongoClientOptions } from "mongodb";
-import { DatabaseSchema } from "../types";
+import { DatabaseSchema, MongoClientOptions } from "../types";
 import { MongoUniversalDAO } from "./universal-dao";
 import { BaseMongoAdapter } from "../adapters/base-adapter";
+
+import { MongoModules, createModuleLogger } from "../logger/logger-config";
+const logger = createModuleLogger(MongoModules.DATABASE_FACTORY);
 
 // ========================== DATABASE FACTORY FOR MONGODB ==========================
 export class MongoDatabaseFactory {
@@ -46,7 +48,7 @@ export class MongoDatabaseFactory {
   ): Promise<MongoUniversalDAO> {
     const dao = this.createDAO(connectionString, schema.database_name, options);
     await dao.connect();
-    
+
     // Use the new method that accepts DatabaseSchema
     await dao.initializeFromDatabaseSchema(schema);
     return dao;
@@ -63,13 +65,13 @@ export class MongoDatabaseFactory {
   ): Promise<MongoUniversalDAO> {
     const dao = this.createDAO(connectionString, customDatabaseName, options);
     await dao.connect();
-    
+
     // Create a modified schema with custom database name
     const modifiedSchema: DatabaseSchema = {
       ...schema,
-      database_name: customDatabaseName
+      database_name: customDatabaseName,
     };
-    
+
     await dao.initializeFromDatabaseSchema(modifiedSchema);
     return dao;
   }
@@ -84,88 +86,107 @@ export class MongoDatabaseFactory {
     options?: MongoClientOptions
   ): Promise<Record<string, MongoUniversalDAO>> {
     const daos: Record<string, MongoUniversalDAO> = {};
-    
+
     for (const dbName of databaseNames) {
       const dao = await this.createFromSchemaWithCustomDb(
-        schema, 
-        connectionString, 
-        dbName, 
+        schema,
+        connectionString,
+        dbName,
         options
       );
       daos[dbName] = dao;
     }
-    
+
     return daos;
   }
 
   /**
    * Validate schema before creating DAO
    */
-  static validateSchema(schema: DatabaseSchema): { isValid: boolean; errors: string[] } {
+  static validateSchema(schema: DatabaseSchema): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
-    
+
     // Check required fields
     if (!schema.version) {
       errors.push("Schema version is required");
     }
-    
+
     if (!schema.database_name) {
       errors.push("Database name is required");
     }
-    
+
     if (!schema.schemas || Object.keys(schema.schemas).length === 0) {
       errors.push("At least one collection schema is required");
     }
-    
+
     // Validate each collection schema
-    for (const [collectionName, collectionSchema] of Object.entries(schema.schemas || {})) {
+    for (const [collectionName, collectionSchema] of Object.entries(
+      schema.schemas || {}
+    )) {
       if (!collectionSchema.cols || collectionSchema.cols.length === 0) {
-        errors.push(`Collection '${collectionName}' must have at least one column`);
+        errors.push(
+          `Collection '${collectionName}' must have at least one column`
+        );
       }
-      
+
       // Check for duplicate column names
       const columnNames = new Set();
       for (const col of collectionSchema.cols) {
         if (!col.name) {
-          errors.push(`Collection '${collectionName}' has a column without name`);
+          errors.push(
+            `Collection '${collectionName}' has a column without name`
+          );
           continue;
         }
-        
+
         if (columnNames.has(col.name)) {
-          errors.push(`Collection '${collectionName}' has duplicate column name: ${col.name}`);
+          errors.push(
+            `Collection '${collectionName}' has duplicate column name: ${col.name}`
+          );
         }
         columnNames.add(col.name);
-        
+
         if (!col.type) {
-          errors.push(`Column '${col.name}' in collection '${collectionName}' must have a type`);
+          errors.push(
+            `Column '${col.name}' in collection '${collectionName}' must have a type`
+          );
         }
       }
-      
+
       // Validate indexes
       if (collectionSchema.indexes) {
         for (const index of collectionSchema.indexes) {
           if (!index.name) {
-            errors.push(`Collection '${collectionName}' has an index without name`);
+            errors.push(
+              `Collection '${collectionName}' has an index without name`
+            );
           }
-          
+
           if (!index.columns || index.columns.length === 0) {
-            errors.push(`Index '${index.name}' in collection '${collectionName}' must have at least one column`);
+            errors.push(
+              `Index '${index.name}' in collection '${collectionName}' must have at least one column`
+            );
           }
-          
+
           // Check if indexed columns exist
-          const availableColumns = collectionSchema.cols.map(col => col.name);
+          const availableColumns = collectionSchema.cols.map((col) => col.name);
           for (const indexColumn of index.columns || []) {
             if (!availableColumns.includes(indexColumn)) {
-              errors.push(`Index '${index.name}' in collection '${collectionName}' references non-existent column: ${indexColumn}`);
+              errors.push(
+                `Index '${index.name}' in collection '${collectionName}' references non-existent column: ${indexColumn}`
+              );
             }
           }
         }
       }
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -178,17 +199,19 @@ export class MongoDatabaseFactory {
     options?: MongoClientOptions & { throwOnValidationError?: boolean }
   ): Promise<MongoUniversalDAO> {
     const validation = this.validateSchema(schema);
-    
+
     if (!validation.isValid) {
-      const errorMessage = `Schema validation failed:\n${validation.errors.join('\n')}`;
-      
+      const errorMessage = `Schema validation failed:\n${validation.errors.join(
+        "\n"
+      )}`;
+
       if (options?.throwOnValidationError !== false) {
         throw new Error(errorMessage);
       } else {
         console.warn(errorMessage);
       }
     }
-    
+
     return await this.createFromSchema(schema, connectionString, options);
   }
 
@@ -208,20 +231,23 @@ export class MongoDatabaseFactory {
       hasValidation: boolean;
     }>;
   } {
-    const collections = Object.entries(schema.schemas || {}).map(([name, config]) => ({
-      name,
-      columnCount: config.cols?.length || 0,
-      indexCount: config.indexes?.length || 0,
-      hasValidation: config.cols?.some(col => col.enum || !col.nullable) || false
-    }));
-    
+    const collections = Object.entries(schema.schemas || {}).map(
+      ([name, config]) => ({
+        name,
+        columnCount: config.cols?.length || 0,
+        indexCount: config.indexes?.length || 0,
+        hasValidation:
+          config.cols?.some((col) => col.enum || !col.nullable) || false,
+      })
+    );
+
     return {
       version: schema.version,
       databaseName: schema.database_name,
       collectionCount: collections.length,
       totalColumns: collections.reduce((sum, col) => sum + col.columnCount, 0),
       totalIndexes: collections.reduce((sum, col) => sum + col.indexCount, 0),
-      collections
+      collections,
     };
   }
 
@@ -231,7 +257,7 @@ export class MongoDatabaseFactory {
   static async createWithConnectionTest(
     schema: DatabaseSchema,
     connectionString: string,
-    options?: MongoClientOptions & { 
+    options?: MongoClientOptions & {
       testTimeout?: number;
       retryAttempts?: number;
       retryDelay?: number;
@@ -240,39 +266,51 @@ export class MongoDatabaseFactory {
     const testTimeout = options?.testTimeout || 5000;
     const retryAttempts = options?.retryAttempts || 3;
     const retryDelay = options?.retryDelay || 1000;
-    
+
     let lastError: Error | null = null;
-    
+
     for (let attempt = 1; attempt <= retryAttempts; attempt++) {
       try {
-        const dao = this.createDAO(connectionString, schema.database_name, options);
-        
+        const dao = this.createDAO(
+          connectionString,
+          schema.database_name,
+          options
+        );
+
         // Test connection with timeout
         const connectPromise = dao.connect();
         const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error('Connection timeout')), testTimeout);
+          setTimeout(
+            () => reject(new Error("Connection timeout")),
+            testTimeout
+          );
         });
-        
+
         await Promise.race([connectPromise, timeoutPromise]);
-        
+
         // Test database operations
         await dao.getDatabaseInfo();
-        
+
         // Initialize schema
         await dao.initializeFromDatabaseSchema(schema);
-        
+
         return dao;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`Connection attempt ${attempt}/${retryAttempts} failed:`, error);
-        
+        console.warn(
+          `Connection attempt ${attempt}/${retryAttempts} failed:`,
+          error
+        );
+
         if (attempt < retryAttempts) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
       }
     }
-    
-    throw new Error(`Failed to connect after ${retryAttempts} attempts. Last error: ${lastError?.message}`);
+
+    throw new Error(
+      `Failed to connect after ${retryAttempts} attempts. Last error: ${lastError?.message}`
+    );
   }
 
   /**
@@ -280,7 +318,7 @@ export class MongoDatabaseFactory {
    */
   static async cleanup(): Promise<void> {
     for (const adapter of this.adapters) {
-      if (typeof adapter.disconnectAll === 'function') {
+      if (typeof adapter.disconnectAll === "function") {
         await adapter.disconnectAll();
       }
     }
@@ -295,10 +333,10 @@ export class MongoDatabaseFactory {
     version?: string;
     isSupported: boolean;
   }> {
-    return this.adapters.map(adapter => ({
+    return this.adapters.map((adapter) => ({
       name: adapter.constructor.name,
       version: (adapter as any).version,
-      isSupported: adapter.isSupported()
+      isSupported: adapter.isSupported(),
     }));
   }
 }

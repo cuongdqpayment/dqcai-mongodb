@@ -1,17 +1,19 @@
 // src/core/base-service.ts
 
 import { ObjectId } from "mongodb";
-import { 
-  MongoQueryOptions, 
-  WhereClause, 
-  OrderByClause, 
+import {
+  MongoQueryOptions,
+  WhereClause,
+  OrderByClause,
   LimitOffset,
   AggregationPipeline,
   UpdateOperation,
   ImportOptions,
-  ImportResult
+  ImportResult,
 } from "../types";
 import { MongoUniversalDAO } from "./universal-dao";
+import { MongoModules, createModuleLogger } from "../logger/logger-config";
+const logger = createModuleLogger(MongoModules.BASE_SERVICE);
 
 // ========================== BASE SERVICE FOR MONGODB ==========================
 export abstract class MongoBaseService<T = any> {
@@ -33,10 +35,13 @@ export abstract class MongoBaseService<T = any> {
   }
 
   // ========================== BASIC CRUD OPERATIONS ==========================
-  
+
   async create(data: Partial<T>): Promise<T> {
     await this.init();
-    const result = await this.dao.insert(this.collectionName, data as Record<string, any>);
+    const result = await this.dao.insert(
+      this.collectionName,
+      data as Record<string, any>
+    );
     return result.rows[0] as T;
   }
 
@@ -51,13 +56,15 @@ export abstract class MongoBaseService<T = any> {
 
   async findById(id: string | ObjectId): Promise<T | null> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    return await this.dao.findOne(this.collectionName, { _id: objectId }) as T | null;
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
+    return (await this.dao.findOne(this.collectionName, {
+      _id: objectId,
+    })) as T | null;
   }
 
   async findOne(filter: Record<string, any> = {}): Promise<T | null> {
     await this.init();
-    return await this.dao.findOne(this.collectionName, filter) as T | null;
+    return (await this.dao.findOne(this.collectionName, filter)) as T | null;
   }
 
   async findMany(
@@ -65,7 +72,7 @@ export abstract class MongoBaseService<T = any> {
     options?: MongoQueryOptions
   ): Promise<T[]> {
     await this.init();
-    return await this.dao.find(this.collectionName, filter, options) as T[];
+    return (await this.dao.find(this.collectionName, filter, options)) as T[];
   }
 
   async updateById(
@@ -73,7 +80,7 @@ export abstract class MongoBaseService<T = any> {
     update: Partial<T>
   ): Promise<boolean> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
     const result = await this.dao.update(
       this.collectionName,
       { _id: objectId },
@@ -98,14 +105,18 @@ export abstract class MongoBaseService<T = any> {
 
   async deleteById(id: string | ObjectId): Promise<boolean> {
     await this.init();
-    const objectId = typeof id === 'string' ? new ObjectId(id) : id;
-    const result = await this.dao.delete(this.collectionName, { _id: objectId });
+    const objectId = typeof id === "string" ? new ObjectId(id) : id;
+    const result = await this.dao.delete(this.collectionName, {
+      _id: objectId,
+    });
     return result.rowsAffected > 0;
   }
 
   async deleteMany(filter: Record<string, any>): Promise<number> {
     await this.init();
-    const result = await this.dao.delete(this.collectionName, filter, { multi: true });
+    const result = await this.dao.delete(this.collectionName, filter, {
+      multi: true,
+    });
     return result.rowsAffected;
   }
 
@@ -130,23 +141,23 @@ export abstract class MongoBaseService<T = any> {
     limitOffset?: LimitOffset
   ): Promise<T[]> {
     await this.init();
-    
+
     const filter = this.dao.buildMongoQuery(wheres);
     const options: MongoQueryOptions = {};
-    
+
     if (orderBys && orderBys.length > 0) {
       options.sort = this.dao.buildMongoSort(orderBys);
     }
-    
+
     if (limitOffset?.limit) {
       options.limit = limitOffset.limit;
     }
-    
+
     if (limitOffset?.offset) {
       options.skip = limitOffset.offset;
     }
-    
-    return await this.dao.find(this.collectionName, filter, options) as T[];
+
+    return (await this.dao.find(this.collectionName, filter, options)) as T[];
   }
 
   /**
@@ -169,22 +180,26 @@ export abstract class MongoBaseService<T = any> {
     };
   }> {
     await this.init();
-    
+
     const skip = (page - 1) * pageSize;
     const total = await this.dao.count(this.collectionName, filter);
     const totalPages = Math.ceil(total / pageSize);
-    
+
     const options: MongoQueryOptions = {
       limit: pageSize,
-      skip: skip
+      skip: skip,
     };
-    
+
     if (sort) {
       options.sort = sort;
     }
-    
-    const data = await this.dao.find(this.collectionName, filter, options) as T[];
-    
+
+    const data = (await this.dao.find(
+      this.collectionName,
+      filter,
+      options
+    )) as T[];
+
     return {
       data,
       pagination: {
@@ -193,8 +208,8 @@ export abstract class MongoBaseService<T = any> {
         total,
         totalPages,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     };
   }
 
@@ -208,19 +223,23 @@ export abstract class MongoBaseService<T = any> {
     options?: MongoQueryOptions
   ): Promise<T[]> {
     await this.init();
-    
+
     const searchFilter: Record<string, any> = {
-      $or: searchFields.map(field => ({
-        [field]: { $regex: searchText, $options: 'i' }
-      }))
+      $or: searchFields.map((field) => ({
+        [field]: { $regex: searchText, $options: "i" },
+      })),
     };
-    
+
     const combinedFilter = {
       ...additionalFilter,
-      ...searchFilter
+      ...searchFilter,
     };
-    
-    return await this.dao.find(this.collectionName, combinedFilter, options) as T[];
+
+    return (await this.dao.find(
+      this.collectionName,
+      combinedFilter,
+      options
+    )) as T[];
   }
 
   // ========================== AGGREGATION OPERATIONS ==========================
@@ -238,16 +257,16 @@ export abstract class MongoBaseService<T = any> {
     filter: Record<string, any> = {}
   ): Promise<Array<{ _id: any; count: number }>> {
     const pipeline: AggregationPipeline[] = [];
-    
+
     if (Object.keys(filter).length > 0) {
       pipeline.push({ $match: filter });
     }
-    
+
     pipeline.push(
       { $group: { _id: `$${groupField}`, count: { $sum: 1 } } },
       { $sort: { count: -1 } }
     );
-    
+
     return await this.aggregate(pipeline);
   }
 
@@ -265,11 +284,11 @@ export abstract class MongoBaseService<T = any> {
     max: number;
   }> {
     const pipeline: AggregationPipeline[] = [];
-    
+
     if (Object.keys(filter).length > 0) {
       pipeline.push({ $match: filter });
     }
-    
+
     pipeline.push({
       $group: {
         _id: null,
@@ -277,19 +296,21 @@ export abstract class MongoBaseService<T = any> {
         sum: { $sum: `$${numericField}` },
         avg: { $avg: `$${numericField}` },
         min: { $min: `$${numericField}` },
-        max: { $max: `$${numericField}` }
-      }
+        max: { $max: `$${numericField}` },
+      },
     });
-    
+
     const result = await this.aggregate(pipeline);
-    
-    return result[0] || {
-      count: 0,
-      sum: 0,
-      avg: 0,
-      min: 0,
-      max: 0
-    };
+
+    return (
+      result[0] || {
+        count: 0,
+        sum: 0,
+        avg: 0,
+        min: 0,
+        max: 0,
+      }
+    );
   }
 
   // ========================== BULK OPERATIONS ==========================
@@ -302,35 +323,39 @@ export abstract class MongoBaseService<T = any> {
     batchSize: number = 1000
   ): Promise<ImportResult> {
     await this.init();
-    
+
     const startTime = Date.now();
     let successCount = 0;
     let errorCount = 0;
-    const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-    
+    const errors: Array<{
+      rowIndex: number;
+      error: string;
+      rowData: Record<string, any>;
+    }> = [];
+
     try {
       const result = await this.dao.bulkInsert(
         this.collectionName,
         documents as Record<string, any>[],
         batchSize
       );
-      
+
       successCount = result.rowsAffected;
     } catch (error) {
       errorCount = documents.length;
       errors.push({
         rowIndex: 0,
         error: (error as Error).message,
-        rowData: {}
+        rowData: {},
       });
     }
-    
+
     return {
       totalRows: documents.length,
       successRows: successCount,
       errorRows: errorCount,
       errors,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 
@@ -343,14 +368,12 @@ export abstract class MongoBaseService<T = any> {
     options?: { upsert?: boolean }
   ): Promise<number> {
     await this.init();
-    
-    const result = await this.dao.update(
-      this.collectionName,
-      filter,
-      update,
-      { multi: true, upsert: options?.upsert }
-    );
-    
+
+    const result = await this.dao.update(this.collectionName, filter, update, {
+      multi: true,
+      upsert: options?.upsert,
+    });
+
     return result.rowsAffected;
   }
 
@@ -359,8 +382,10 @@ export abstract class MongoBaseService<T = any> {
    */
   async bulkDelete(filter: Record<string, any>): Promise<number> {
     await this.init();
-    
-    const result = await this.dao.delete(this.collectionName, filter, { multi: true });
+
+    const result = await this.dao.delete(this.collectionName, filter, {
+      multi: true,
+    });
     return result.rowsAffected;
   }
 
@@ -369,7 +394,7 @@ export abstract class MongoBaseService<T = any> {
   async executeTransaction<R>(callback: () => Promise<R>): Promise<R> {
     await this.init();
     await this.dao.beginTransaction();
-    
+
     try {
       const result = await callback();
       await this.dao.commitTransaction();
@@ -411,73 +436,86 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<ImportResult> {
     await this.init();
-    
+
     const batchSize = options?.batchSize || 1000;
     const startTime = Date.now();
     let successCount = 0;
     let errorCount = 0;
-    const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-    
+    const errors: Array<{
+      rowIndex: number;
+      error: string;
+      rowData: Record<string, any>;
+    }> = [];
+
     // Transform records from SQLite to MongoDB format
-    const transformedRecords = records.map((record, index) => {
-      try {
-        let transformed = this.dao.sqliteToMongoFormat(record);
-        
-        if (options?.transformRecord) {
-          transformed = options.transformRecord(transformed);
+    const transformedRecords = records
+      .map((record, index) => {
+        try {
+          let transformed = this.dao.sqliteToMongoFormat(record);
+
+          if (options?.transformRecord) {
+            transformed = options.transformRecord(transformed);
+          }
+
+          return transformed;
+        } catch (error) {
+          if (!options?.skipErrors) {
+            throw error;
+          }
+
+          errors.push({
+            rowIndex: index,
+            error: (error as Error).message,
+            rowData: record,
+          });
+          errorCount++;
+          return null;
         }
-        
-        return transformed;
-      } catch (error) {
-        if (!options?.skipErrors) {
-          throw error;
-        }
-        
-        errors.push({
-          rowIndex: index,
-          error: (error as Error).message,
-          rowData: record
-        });
-        errorCount++;
-        return null;
-      }
-    }).filter(record => record !== null);
-    
+      })
+      .filter((record) => record !== null);
+
     // Batch insert
     for (let i = 0; i < transformedRecords.length; i += batchSize) {
       try {
         const batch = transformedRecords.slice(i, i + batchSize);
-        const result = await this.dao.bulkInsert(this.collectionName, batch, batchSize);
+        const result = await this.dao.bulkInsert(
+          this.collectionName,
+          batch,
+          batchSize
+        );
         successCount += result.rowsAffected;
-        
+
         if (options?.onProgress) {
-          options.onProgress(Math.min(i + batchSize, transformedRecords.length), records.length);
+          options.onProgress(
+            Math.min(i + batchSize, transformedRecords.length),
+            records.length
+          );
         }
       } catch (error) {
         const batchStart = i;
         const batchEnd = Math.min(i + batchSize, transformedRecords.length);
-        
+
         for (let j = batchStart; j < batchEnd; j++) {
           errors.push({
             rowIndex: j,
             error: (error as Error).message,
-            rowData: transformedRecords[j]
+            rowData: transformedRecords[j],
           });
           errorCount++;
         }
-        
+
         if (!options?.skipErrors) {
           break;
         }
       }
     }
-    
+
     return {
       totalRows: records.length,
       successRows: successCount,
       errorRows: errorCount,
       errors,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 
@@ -493,26 +531,30 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<Record<string, any>[]> {
     await this.init();
-    
+
     const queryOptions: MongoQueryOptions = {};
-    
+
     if (options?.limit) {
       queryOptions.limit = options.limit;
     }
-    
+
     if (options?.sort) {
       queryOptions.sort = options.sort;
     }
-    
-    const records = await this.dao.find(this.collectionName, filter, queryOptions);
-    
-    return records.map(record => {
+
+    const records = await this.dao.find(
+      this.collectionName,
+      filter,
+      queryOptions
+    );
+
+    return records.map((record) => {
       let transformed = this.dao.mongoToSQLiteFormat(record);
-      
+
       if (options?.transformRecord) {
         transformed = options.transformRecord(transformed);
       }
-      
+
       return transformed;
     });
   }
@@ -530,16 +572,18 @@ export abstract class MongoBaseService<T = any> {
     indexes: any[];
   }> {
     await this.init();
-    
+
     const count = await this.dao.count(this.collectionName);
-    const collectionInfo = await this.dao.getCollectionInfo(this.collectionName);
-    
+    const collectionInfo = await this.dao.getCollectionInfo(
+      this.collectionName
+    );
+
     return {
       name: this.collectionName,
       count,
       averageSize: 0, // MongoDB doesn't provide this directly
-      totalSize: 0,   // MongoDB doesn't provide this directly
-      indexes: collectionInfo.indexes
+      totalSize: 0, // MongoDB doesn't provide this directly
+      indexes: collectionInfo.indexes,
     };
   }
 
@@ -547,7 +591,7 @@ export abstract class MongoBaseService<T = any> {
    * Create index on collection
    */
   async createIndex(
-    keys: Record<string, 1 | -1 | 'text' | '2dsphere'>,
+    keys: Record<string, 1 | -1 | "text" | "2dsphere">,
     options?: {
       name?: string;
       unique?: boolean;
@@ -557,8 +601,8 @@ export abstract class MongoBaseService<T = any> {
     }
   ): Promise<void> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     await collection.createIndex(keys, options);
   }
 
@@ -567,18 +611,21 @@ export abstract class MongoBaseService<T = any> {
    */
   async dropIndex(indexName: string): Promise<void> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     await collection.dropIndex(indexName);
   }
 
   /**
    * Get distinct values for a field
    */
-  async distinct(field: string, filter: Record<string, any> = {}): Promise<any[]> {
+  async distinct(
+    field: string,
+    filter: Record<string, any> = {}
+  ): Promise<any[]> {
     await this.init();
-    
-    const collection = this.dao['getCollection'](this.collectionName);
+
+    const collection = this.dao["getCollection"](this.collectionName);
     return await collection.distinct(field, filter);
   }
 
@@ -595,14 +642,14 @@ export abstract class MongoBaseService<T = any> {
    */
   async getFirst(sort?: Record<string, 1 | -1>): Promise<T | null> {
     await this.init();
-    
+
     const options: MongoQueryOptions = { limit: 1 };
     if (sort) {
       options.sort = sort;
     }
-    
+
     const results = await this.dao.find(this.collectionName, {}, options);
-    return results[0] as T || null;
+    return (results[0] as T) || null;
   }
 
   /**
@@ -610,31 +657,34 @@ export abstract class MongoBaseService<T = any> {
    */
   async getLast(sort?: Record<string, 1 | -1>): Promise<T | null> {
     await this.init();
-    
+
     const defaultSort = sort || { _id: -1 };
-    const options: MongoQueryOptions = { 
+    const options: MongoQueryOptions = {
       limit: 1,
-      sort: defaultSort
+      sort: defaultSort,
     };
-    
+
     const results = await this.dao.find(this.collectionName, {}, options);
-    return results[0] as T || null;
+    return (results[0] as T) || null;
   }
 
   /**
    * Validate document against schema rules
    */
-  protected validateDocument(document: Partial<T>): { isValid: boolean; errors: string[] } {
+  protected validateDocument(document: Partial<T>): {
+    isValid: boolean;
+    errors: string[];
+  } {
     const errors: string[] = [];
-    
+
     // Basic validation - can be overridden in subclasses
-    if (!document || typeof document !== 'object') {
-      errors.push('Document must be an object');
+    if (!document || typeof document !== "object") {
+      errors.push("Document must be an object");
     }
-    
+
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -643,24 +693,27 @@ export abstract class MongoBaseService<T = any> {
    */
   async createValidated(data: Partial<T>): Promise<T> {
     const validation = this.validateDocument(data);
-    
+
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
-    
+
     return await this.create(data);
   }
 
   /**
    * Update document with validation
    */
-  async updateValidated(id: string | ObjectId, update: Partial<T>): Promise<boolean> {
+  async updateValidated(
+    id: string | ObjectId,
+    update: Partial<T>
+  ): Promise<boolean> {
     const validation = this.validateDocument(update);
-    
+
     if (!validation.isValid) {
-      throw new Error(`Validation failed: ${validation.errors.join(', ')}`);
+      throw new Error(`Validation failed: ${validation.errors.join(", ")}`);
     }
-    
+
     return await this.updateById(id, update);
   }
 
@@ -685,11 +738,11 @@ export abstract class MongoBaseService<T = any> {
   /**
    * Cleanup expired documents (requires expiration field)
    */
-  async cleanupExpired(expirationField: string = 'expiresAt'): Promise<number> {
+  async cleanupExpired(expirationField: string = "expiresAt"): Promise<number> {
     const filter = {
-      [expirationField]: { $lt: new Date() }
+      [expirationField]: { $lt: new Date() },
     };
-    
+
     return await this.deleteMany(filter);
   }
 }
