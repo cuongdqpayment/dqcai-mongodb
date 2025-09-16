@@ -1,6 +1,6 @@
 {
   "name": "@dqcai/mongodb",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "Universal MongoDb adapter for Node.js with a unified API.",
   "main": "lib/index.js",
