@@ -10,6 +10,7 @@ export {
 // ========================== CORE EXPORTS ==========================
 export { MongoUniversalDAO } from "./core/universal-dao";
 export { MongoDatabaseFactory } from "./core/database-factory";
+export { MongoDatabaseManager } from "./core/database-manager";
 export { MongoBaseService } from "./core/base-service";
 export { BaseMongoAdapter } from "./adapters/base-adapter";
 

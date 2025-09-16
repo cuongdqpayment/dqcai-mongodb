@@ -6,6 +6,11 @@ import {
   ImportResult,
   ColumnMapping,
   MongoClientOptions,
+  MongoBulkImportResult,
+  MongoDatabaseImportConfig,
+  MongoRoleConfig,
+  MongoRoleRegistry,
+  MongoSchemaManager,
 } from "../types";
 import { MongoDatabaseFactory } from "./database-factory";
 import { MongoUniversalDAO } from "./universal-dao";
@@ -17,40 +22,6 @@ const logger = createModuleLogger(MongoModules.DATABASE_MANAGER);
 export type MongoDatabaseConnections = {
   [key: string]: MongoUniversalDAO;
 };
-
-export interface MongoRoleConfig {
-  roleName: string;
-  requiredDatabases: string[];
-  optionalDatabases?: string[];
-  priority?: number;
-}
-
-export type MongoRoleRegistry = {
-  [roleName: string]: MongoRoleConfig;
-};
-
-export interface MongoDatabaseImportConfig {
-  databaseKey: string;
-  collectionName: string;
-  data: Record<string, any>[];
-  options?: Partial<ImportOptions>;
-  columnMappings?: ColumnMapping[];
-}
-
-export interface MongoBulkImportResult {
-  totalDatabases: number;
-  successDatabases: number;
-  results: Record<string, ImportResult>;
-  errors: Record<string, Error>;
-  executionTime: number;
-}
-
-export interface MongoSchemaManager {
-  getSchema(key: string): DatabaseSchema | undefined;
-  registerSchema(key: string, schema: DatabaseSchema): void;
-  getAllSchemaKeys(): string[];
-  hasSchema(key: string): boolean;
-}
 
 export class MongoDatabaseManager {
   private static maxConnections = 10;
