@@ -12,19 +12,25 @@
       "import": "./lib/index.mjs",
       "require": "./lib/index.js",
       "browser": "./lib/index.umd.js"
-    }
+    },
+    "./*": {
+      "types": "./lib/*.d.ts",
+      "import": "./lib/*.mjs",
+      "require": "./lib/*.js",
+      "browser": "./lib/*.umd.js"
+    },
+    "./package.json": "./package.json"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./lib/index.d.ts"
+        "./lib/*.d.ts"
       ]
     }
   },
   "files": [
     "lib",
-    "README.md",
-    "README.html"
+    "README.md"
   ],
   "scripts": {
     "build": "rollup -c rollup.config.js",

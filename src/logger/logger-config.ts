@@ -89,12 +89,10 @@ export class MongoLoggerConfig {
     const config = customConfig || MongoLoggerConfig.createDefaultConfig();
     MongoLoggerConfig.currentConfig = config;
 
-    if (
-      config.enabled &&
-      (config.defaultLevel === "trace" || config.defaultLevel === "debug")
-    ) {
-      console.debug(
-        `MongoLoggerConfig.initialize() with ${
+    if (config.enabled && config.defaultLevel === "trace") {
+      console.log(
+        "[MongoLoggerConfig]",
+        `[initialize] - Logger initialized with ${
           customConfig ? "CUSTOM" : "default"
         } config`
       );
@@ -115,13 +113,10 @@ export class MongoLoggerConfig {
    * Update configuration - proxy pattern automatically handles updates
    */
   static updateConfiguration(newConfig: any): void {
-    if (
-      newConfig &&
-      newConfig.enabled &&
-      (newConfig.defaultLevel === "trace" || newConfig.defaultLevel === "debug")
-    ) {
-      console.debug(
-        "MongoLoggerConfig.updateConfiguration()",
+    if (newConfig && newConfig.enabled && newConfig.defaultLevel === "trace") {
+      console.log(
+        "[MongoLoggerConfig]",
+        "[updateConfiguration]",
         JSON.stringify(newConfig, null, 2)
       );
     }
@@ -130,15 +125,10 @@ export class MongoLoggerConfig {
     MongoLoggerConfig.instance = createLogger(newConfig);
 
     // Log update confirmation
-    if (
-      newConfig &&
-      newConfig.enabled &&
-      (newConfig.defaultLevel === "trace" ||
-        newConfig.defaultLevel === "debug" ||
-        newConfig.defaultLevel === "info")
-    ) {
+    if (newConfig && newConfig.enabled && newConfig.defaultLevel === "trace") {
       console.log(
-        "MongoLoggerConfig.updateConfiguration() - Configuration updated. Proxy loggers will use new settings automatically.",
+        "[MongoLoggerConfig]",
+        "[updateConfiguration] - Configuration updated for Proxy loggers.",
         `Active proxies: ${Array.from(MongoLoggerConfig.proxyInstances.keys())}`
       );
     }

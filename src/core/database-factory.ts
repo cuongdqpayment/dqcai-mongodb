@@ -2,23 +2,24 @@
 
 import { DatabaseSchema, MongoClientOptions } from "../types";
 import { MongoUniversalDAO } from "./universal-dao";
+import { MongoAdapter } from "../types";
 import { BaseMongoAdapter } from "../adapters/base-adapter";
-
 import { MongoModules, createModuleLogger } from "../logger/logger-config";
+
 const logger = createModuleLogger(MongoModules.DATABASE_FACTORY);
 
 // ========================== DATABASE FACTORY FOR MONGODB ==========================
 export class MongoDatabaseFactory {
-  private static adapters: BaseMongoAdapter[] = [];
+  private static adapters: MongoAdapter[] = [];
 
-  static registerAdapter(adapter: BaseMongoAdapter): void {
+  static registerAdapter(adapter: MongoAdapter): void {
     logger.trace("Registering new adapter", {
       adapterName: adapter.constructor.name,
     });
     this.adapters.push(adapter);
   }
 
-  private static getBestAdapter(): BaseMongoAdapter {
+  private static getBestAdapter(): MongoAdapter {
     logger.debug("Finding best adapter", { adapterCount: this.adapters.length });
     const adapter = this.adapters.find((a) => a.isSupported());
     if (!adapter) {

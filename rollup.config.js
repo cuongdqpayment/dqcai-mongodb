@@ -5,24 +5,24 @@ import commonjs from "@rollup/plugin-commonjs";
 import esbuild from "rollup-plugin-esbuild";
 
 export default {
-  input: "src/index.ts", // Điểm vào từ mã TypeScript. -- phương án build trong tham số lệnh
-  external: [], // Không có external deps
+  input: "src/index.ts", 
+  external: [],
   output: [
     {
-      file: "lib/index.js", // CommonJS use: import ... from '...';
+      file: "lib/index.js", 
       format: "cjs",
-      sourcemap: true, // Tùy chọn: Thêm source map để debug
+      sourcemap: true, 
       exports: "auto",
     },
     {
-      file: "lib/index.mjs", // ES Module: use = require('..');
+      file: "lib/index.mjs", 
       format: "esm",
       sourcemap: true,
     },
     {
-      file: "lib/index.umd.js", // UMD cho browser và hybrid
+      file: "lib/index.umd.js", 
       format: "umd",
-      name: "DQCAIMongoDB", // Tên global variable cho browser
+      name: "DQCAIMongoDB",
       sourcemap: true,
     },
   ],

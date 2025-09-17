@@ -30,6 +30,7 @@ export interface MongoAdapter {
     options?: MongoClientOptions
   ): Promise<MongoConnection>;
   isSupported(): boolean;
+  disconnectAll(): Promise<void>;
 }
 
 export interface MongoQueryOptions {
