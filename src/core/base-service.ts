@@ -1,9 +1,9 @@
 // src/core/base-service.ts
 
-import { 
-  MongoQueryOptions, 
-  WhereClause, 
-  OrderByClause, 
+import {
+  MongoQueryOptions,
+  WhereClause,
+  OrderByClause,
   LimitOffset,
   AggregationPipeline,
   UpdateOperation,
@@ -63,14 +63,14 @@ export abstract class MongoBaseService<T = any> {
         schemaName: this.schemaName,
         collectionName: this.collectionName
       });
-      
+
       this.dao = newDao;
       this._emit("daoReconnected", { schemaName: this.schemaName });
     };
 
     MongoDatabaseManager.onDatabaseReconnect(schemaName, this.reconnectHandler);
     this.bindMethods();
-    
+
     logger.trace("MongoBaseService instance created successfully", {
       schemaName: this.schemaName,
       collectionName: this.collectionName
@@ -94,6 +94,79 @@ export abstract class MongoBaseService<T = any> {
     });
   }
 
+  /**
+   * Safely convert string ID to ObjectId, throw error if invalid
+   */
+  private validateAndConvertId(id: any): any {
+    // Null hoặc undefined không hợp lệ
+    if (id == null) {
+      throw new Error('ID cannot be null or undefined');
+    }
+
+    // ObjectId
+    if (id instanceof ObjectId) {
+      return id;
+    }
+
+    // String
+    if (typeof id === 'string') {
+      if (!id.trim()) {
+        throw new Error('ID cannot be empty or whitespace only');
+      }
+
+      // Convert ObjectId string if valid format
+      if (ObjectId.isValid(id) && /^[0-9a-fA-F]{24}$/.test(id)) {
+        try {
+          return new ObjectId(id);
+        } catch {
+          return id;
+        }
+      }
+
+      return id;
+    }
+
+    // Number
+    if (typeof id === 'number') {
+      if (!Number.isFinite(id)) {
+        throw new Error(`Invalid number ID: ${id}`);
+      }
+      return id;
+    }
+
+    // Date
+    if (id instanceof Date) {
+      if (isNaN(id.getTime())) {
+        throw new Error('Invalid Date ID');
+      }
+      return id;
+    }
+
+    // Boolean (MongoDB chấp nhận)
+    if (typeof id === 'boolean') {
+      return id;
+    }
+
+    // Binary data (Buffer)
+    if (Buffer.isBuffer(id)) {
+      return id;
+    }
+
+    // Array hoặc Object phức tạp - cần cẩn thận
+    if (typeof id === 'object') {
+      // Có thể là Binary data hoặc custom object
+      // Chỉ chấp nhận nếu có structure đơn giản
+      try {
+        JSON.stringify(id); // Test serializable
+        return id;
+      } catch {
+        throw new Error('Complex objects are not recommended for _id');
+      }
+    }
+
+    throw new Error(`Unsupported ID type: ${typeof id}`);
+  }
+  
   /**
    * Set primary key fields for the service
    */
@@ -150,7 +223,7 @@ export abstract class MongoBaseService<T = any> {
 
       this.isOpened = true;
       this.isInitialized = true;
-      
+
       logger.info("MongoBaseService initialized successfully", {
         schemaName: this.schemaName,
         collectionName: this.collectionName,
@@ -174,7 +247,7 @@ export abstract class MongoBaseService<T = any> {
   }
 
   // ========================== BASIC CRUD OPERATIONS ==========================
-  
+
   /**
    * Create a new document
    */
@@ -258,9 +331,9 @@ export abstract class MongoBaseService<T = any> {
         count: createdDocuments.length
       });
 
-      this._emit("dataBulkCreated", { 
-        operation: "createMany", 
-        count: createdDocuments.length 
+      this._emit("dataBulkCreated", {
+        operation: "createMany",
+        count: createdDocuments.length
       });
 
       return createdDocuments;
@@ -299,7 +372,7 @@ export abstract class MongoBaseService<T = any> {
         throw new Error(errorMsg);
       }
 
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+      const objectId = this.validateAndConvertId(id);
       const document = await this.dao!.findOne(this.collectionName, { _id: objectId }) as T | null;
 
       logger.debug("Find by ID completed", {
@@ -320,6 +393,10 @@ export abstract class MongoBaseService<T = any> {
       });
 
       this._handleError("FIND_BY_ID_ERROR", error as Error);
+      // Return null instead of throwing for ID-related errors
+      if ((error as Error).message.includes('Invalid ObjectId')) {
+        return null;
+      }
       throw error;
     }
   }
@@ -396,7 +473,7 @@ export abstract class MongoBaseService<T = any> {
 
       // Build filter from conditions and where clauses
       let filter = { ...conditions };
-      
+
       if (options.where && options.where.length > 0) {
         const whereFilter = this.dao!.buildMongoQuery(options.where);
         filter = { ...filter, ...whereFilter };
@@ -464,7 +541,8 @@ export abstract class MongoBaseService<T = any> {
 
       this._validateData(update);
 
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+      const objectId = this.validateAndConvertId(id);
+
       const result = await this.dao!.update(
         this.collectionName,
         { _id: objectId },
@@ -499,6 +577,10 @@ export abstract class MongoBaseService<T = any> {
       });
 
       this._handleError("UPDATE_ERROR", error as Error);
+      // Return false instead of throwing for ID-related errors
+      if ((error as Error).message.includes('Invalid ObjectId')) {
+        return false;
+      }
       throw error;
     }
   }
@@ -535,9 +617,9 @@ export abstract class MongoBaseService<T = any> {
         rowsAffected: result.rowsAffected
       });
 
-      this._emit("dataBulkUpdated", { 
-        operation: "updateMany", 
-        count: result.rowsAffected 
+      this._emit("dataBulkUpdated", {
+        operation: "updateMany",
+        count: result.rowsAffected
       });
 
       return result.rowsAffected;
@@ -576,7 +658,7 @@ export abstract class MongoBaseService<T = any> {
         throw new Error(errorMsg);
       }
 
-      const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+      const objectId = this.validateAndConvertId(id);
       const result = await this.dao!.delete(this.collectionName, { _id: objectId });
       const success = result.rowsAffected > 0;
 
@@ -606,6 +688,10 @@ export abstract class MongoBaseService<T = any> {
       });
 
       this._handleError("DELETE_ERROR", error as Error);
+      // Return false instead of throwing for ID-related errors
+      if ((error as Error).message.includes('Invalid ObjectId')) {
+        return false;
+      }
       throw error;
     }
   }
@@ -631,9 +717,9 @@ export abstract class MongoBaseService<T = any> {
         rowsAffected: result.rowsAffected
       });
 
-      this._emit("dataBulkDeleted", { 
-        operation: "deleteMany", 
-        count: result.rowsAffected 
+      this._emit("dataBulkDeleted", {
+        operation: "deleteMany",
+        count: result.rowsAffected
       });
 
       return result.rowsAffected;
@@ -709,6 +795,33 @@ export abstract class MongoBaseService<T = any> {
     return exists;
   }
 
+  /**
+   * Check if document exists by ID with proper ID validation
+   */
+  async existsById(id: string | ObjectId): Promise<boolean> {
+    logger.debug("Checking if document exists by ID", {
+      schemaName: this.schemaName,
+      collectionName: this.collectionName,
+      id: id.toString()
+    });
+
+    try {
+      if (!id) {
+        return false;
+      }
+      const objectId = this.validateAndConvertId(id);
+      return await this.exists({ _id: objectId });
+    } catch (error) {
+      logger.debug("Error checking existence by ID", {
+        schemaName: this.schemaName,
+        collectionName: this.collectionName,
+        id: id.toString(),
+        error: (error as Error).message
+      });
+      return false;
+    }
+  }
+
   // ========================== ADVANCED QUERY METHODS ==========================
 
   /**
@@ -728,23 +841,23 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const filter = this.dao!.buildMongoQuery(wheres);
       const options: MongoQueryOptions = {};
-      
+
       if (orderBys && orderBys.length > 0) {
         options.sort = this.dao!.buildMongoSort(orderBys);
       }
-      
+
       if (limitOffset?.limit) {
         options.limit = limitOffset.limit;
       }
-      
+
       if (limitOffset?.offset) {
         options.skip = limitOffset.offset;
       }
-      
+
       const documents = await this.dao!.find(this.collectionName, filter, options) as T[];
 
       logger.info("Find with where completed", {
@@ -800,23 +913,23 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const skip = (page - 1) * pageSize;
       const total = await this.dao!.count(this.collectionName, filter);
       const totalPages = Math.ceil(total / pageSize);
-      
+
       const options: MongoQueryOptions = {
         limit: pageSize,
         skip: skip
       };
-      
+
       if (sort) {
         options.sort = sort;
       }
-      
+
       const data = await this.dao!.find(this.collectionName, filter, options) as T[];
-      
+
       const result = {
         data,
         pagination: {
@@ -878,19 +991,19 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const searchFilter: Record<string, any> = {
         $or: searchFields.map(field => ({
           [field]: { $regex: searchText, $options: 'i' }
         }))
       };
-      
+
       const combinedFilter = {
         ...additionalFilter,
         ...searchFilter
       };
-      
+
       const documents = await this.dao!.find(this.collectionName, combinedFilter, options) as T[];
 
       logger.info("Search completed", {
@@ -979,7 +1092,7 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       if (!Array.isArray(documents) || documents.length === 0) {
         const errorMsg = "Documents must be a non-empty array";
@@ -994,14 +1107,14 @@ export abstract class MongoBaseService<T = any> {
       let successCount = 0;
       let errorCount = 0;
       const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-      
+
       try {
         const result = await this.dao!.bulkInsert(
           this.collectionName,
           documents as Record<string, any>[],
           batchSize
         );
-        
+
         successCount = result.rowsAffected;
       } catch (error) {
         errorCount = documents.length;
@@ -1011,7 +1124,7 @@ export abstract class MongoBaseService<T = any> {
           rowData: {}
         });
       }
-      
+
       const result: ImportResult = {
         totalRows: documents.length,
         successRows: successCount,
@@ -1067,13 +1180,13 @@ export abstract class MongoBaseService<T = any> {
 
       await this.dao!.beginTransaction();
       const result = await callback();
-      
+
       logger.trace("Committing transaction", {
         schemaName: this.schemaName
       });
 
       await this.dao!.commitTransaction();
-      
+
       logger.info("Transaction completed successfully", {
         schemaName: this.schemaName,
         collectionName: this.collectionName
@@ -1100,7 +1213,7 @@ export abstract class MongoBaseService<T = any> {
         });
         this._handleError("ROLLBACK_ERROR", rollbackError as Error);
       }
-      
+
       this._handleError("TRANSACTION_ERROR", error as Error);
       throw error;
     }
@@ -1144,29 +1257,29 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     const batchSize = options?.batchSize || 1000;
     const startTime = Date.now();
     let successCount = 0;
     let errorCount = 0;
     const errors: Array<{ rowIndex: number; error: string; rowData: Record<string, any> }> = [];
-    
+
     try {
       // Transform records from SQLite to MongoDB format
       const transformedRecords = records.map((record, index) => {
         try {
           let transformed = this.dao!.sqliteToMongoFormat(record);
-          
+
           if (options?.transformRecord) {
             transformed = options.transformRecord(transformed);
           }
-          
+
           return transformed;
         } catch (error) {
           if (!options?.skipErrors) {
             throw error;
           }
-          
+
           errors.push({
             rowIndex: index,
             error: (error as Error).message,
@@ -1176,21 +1289,21 @@ export abstract class MongoBaseService<T = any> {
           return null;
         }
       }).filter(record => record !== null);
-      
+
       // Batch insert
       for (let i = 0; i < transformedRecords.length; i += batchSize) {
         try {
           const batch = transformedRecords.slice(i, i + batchSize);
           const result = await this.dao!.bulkInsert(this.collectionName, batch, batchSize);
           successCount += result.rowsAffected;
-          
+
           if (options?.onProgress) {
             options.onProgress(Math.min(i + batchSize, transformedRecords.length), records.length);
           }
         } catch (error) {
           const batchStart = i;
           const batchEnd = Math.min(i + batchSize, transformedRecords.length);
-          
+
           for (let j = batchStart; j < batchEnd; j++) {
             errors.push({
               rowIndex: j,
@@ -1199,13 +1312,13 @@ export abstract class MongoBaseService<T = any> {
             });
             errorCount++;
           }
-          
+
           if (!options?.skipErrors) {
             break;
           }
         }
       }
-      
+
       const result: ImportResult = {
         totalRows: records.length,
         successRows: successCount,
@@ -1256,27 +1369,27 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const queryOptions: MongoQueryOptions = {};
-      
+
       if (options?.limit) {
         queryOptions.limit = options.limit;
       }
-      
+
       if (options?.sort) {
         queryOptions.sort = options.sort;
       }
-      
+
       const records = await this.dao!.find(this.collectionName, filter, queryOptions);
-      
+
       const transformedRecords = records.map(record => {
         let transformed = this.dao!.mongoToSQLiteFormat(record);
-        
+
         if (options?.transformRecord) {
           transformed = options.transformRecord(transformed);
         }
-        
+
         return transformed;
       });
 
@@ -1317,11 +1430,11 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const count = await this.dao!.count(this.collectionName);
       const collectionInfo = await this.dao!.getCollectionInfo(this.collectionName);
-      
+
       const stats = {
         name: this.collectionName,
         count,
@@ -1362,7 +1475,7 @@ export abstract class MongoBaseService<T = any> {
     });
 
     await this._ensureInitialized();
-    
+
     try {
       const collection = this.dao!['getCollection'](this.collectionName);
       const values = await collection.distinct(field, filter);
@@ -1608,7 +1721,7 @@ export abstract class MongoBaseService<T = any> {
     try {
       await this._ensureInitialized();
       const count = await this.count();
-      
+
       const result = {
         healthy: true,
         schemaName: this.schemaName,
@@ -1792,18 +1905,18 @@ export abstract class MongoBaseService<T = any> {
       itemsCount: dataArray.length
     });
 
-    const result = await this.bulkInsert(dataArray  as Partial<T>[]);
-    
+    const result = await this.bulkInsert(dataArray as Partial<T>[]);
+
     // Return the created documents by querying recent inserts
     // This is a simplified approach - in production you might want to track inserted IDs
     if (result.successRows > 0) {
-      const recentDocuments = await this.findAll({}, { 
+      const recentDocuments = await this.findAll({}, {
         limit: result.successRows,
         sort: { _id: -1 }
       });
       return recentDocuments.reverse(); // Return in creation order
     }
-    
+
     return [];
   }
 }
