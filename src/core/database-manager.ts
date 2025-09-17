@@ -77,7 +77,9 @@ export class MongoDatabaseManager {
    * Get the maximum number of allowed database connections
    */
   public static getMaxConnections(): number {
-    logger.debug("Retrieving max connections", { maxConnections: this.maxConnections });
+    logger.debug("Retrieving max connections", {
+      maxConnections: this.maxConnections,
+    });
     return this.maxConnections;
   }
 
@@ -124,7 +126,10 @@ export class MongoDatabaseManager {
    * Register a schema configuration dynamically
    */
   public static registerSchema(key: string, schema: DatabaseSchema): void {
-    logger.debug("Registering schema", { schemaKey: key, schemaVersion: schema.version });
+    logger.debug("Registering schema", {
+      schemaKey: key,
+      schemaVersion: schema.version,
+    });
     this.schemaConfigurations[key] = schema;
   }
 
@@ -132,7 +137,9 @@ export class MongoDatabaseManager {
    * Register multiple schemas at once
    */
   public static registerSchemas(schemas: Record<string, DatabaseSchema>): void {
-    logger.info("Registering multiple schemas", { schemaCount: Object.keys(schemas).length });
+    logger.info("Registering multiple schemas", {
+      schemaCount: Object.keys(schemas).length,
+    });
     Object.entries(schemas).forEach(([key, schema]) => {
       logger.trace("Registering individual schema", { schemaKey: key });
       this.registerSchema(key, schema);
@@ -145,7 +152,9 @@ export class MongoDatabaseManager {
   private static getSchema(key: string): DatabaseSchema | undefined {
     logger.debug("Retrieving schema", { schemaKey: key });
     if (this.schemaConfigurations[key]) {
-      logger.trace("Schema found in internal configurations", { schemaKey: key });
+      logger.trace("Schema found in internal configurations", {
+        schemaKey: key,
+      });
       return this.schemaConfigurations[key];
     }
 
@@ -169,7 +178,9 @@ export class MongoDatabaseManager {
     const internalKeys = Object.keys(this.schemaConfigurations);
     const externalKeys = this.schemaManager?.getAllSchemaKeys() || [];
     const schemaKeys = [...new Set([...internalKeys, ...externalKeys])];
-    logger.info("Retrieved available schema keys", { schemaCount: schemaKeys.length });
+    logger.info("Retrieved available schema keys", {
+      schemaCount: schemaKeys.length,
+    });
     return schemaKeys;
   }
 
@@ -187,9 +198,13 @@ export class MongoDatabaseManager {
    * Register multiple roles
    */
   public static registerRoles(roleConfigs: MongoRoleConfig[]): void {
-    logger.info("Registering multiple roles", { roleCount: roleConfigs.length });
+    logger.info("Registering multiple roles", {
+      roleCount: roleConfigs.length,
+    });
     roleConfigs.forEach((config) => {
-      logger.trace("Registering individual role", { roleName: config.roleName });
+      logger.trace("Registering individual role", {
+        roleName: config.roleName,
+      });
       this.registerRole(config);
     });
   }
@@ -198,7 +213,9 @@ export class MongoDatabaseManager {
    * Get all registered roles
    */
   public static getRegisteredRoles(): MongoRoleRegistry {
-    logger.debug("Retrieving registered roles", { roleCount: Object.keys(this.roleRegistry).length });
+    logger.debug("Retrieving registered roles", {
+      roleCount: Object.keys(this.roleRegistry).length,
+    });
     return { ...this.roleRegistry };
   }
 
@@ -217,19 +234,23 @@ export class MongoDatabaseManager {
       ...roleConfig.requiredDatabases,
       ...(roleConfig.optionalDatabases || []),
     ];
-    logger.debug("Retrieved role databases", { roleName, databaseCount: databases.length });
+    logger.debug("Retrieved role databases", {
+      roleName,
+      databaseCount: databases.length,
+    });
     return databases;
   }
 
   /**
    * Get databases for current user roles
    */
-  public static getCurrentUserDatabases(): string[] {
+  public static getCurrentUserDatabases(isCore: boolean = false): string[] {
     logger.debug("Retrieving databases for current user roles", {
       roleCount: this.currentUserRoles.length,
     });
     const allDatabases = new Set<string>();
-    allDatabases.add("core");
+    // Chỉ sử dụng database này làm core quản trị db thì mới add nó vào tự động, không thì thôi
+    if (isCore) allDatabases.add("core");
 
     for (const roleName of this.currentUserRoles) {
       const roleConfig = this.roleRegistry[roleName];
@@ -243,7 +264,9 @@ export class MongoDatabaseManager {
     }
 
     const databases = Array.from(allDatabases);
-    logger.info("Retrieved current user databases", { databaseCount: databases.length });
+    logger.info("Retrieved current user databases", {
+      databaseCount: databases.length,
+    });
     return databases;
   }
 
@@ -320,7 +343,9 @@ export class MongoDatabaseManager {
       await this.initializeUserRoleConnections();
       logger.info("User role connections initialized successfully");
       await this.cleanupUnusedConnections(previousRoles);
-      logger.info("Unused connections cleaned up", { previousRoleCount: previousRoles.length });
+      logger.info("Unused connections cleaned up", {
+        previousRoleCount: previousRoles.length,
+      });
     } catch (error) {
       logger.error("Error setting user roles or initializing connections", {
         error: (error as Error).message,
@@ -333,7 +358,9 @@ export class MongoDatabaseManager {
    * Get current user roles
    */
   public static getCurrentUserRoles(): string[] {
-    logger.debug("Retrieving current user roles", { roleCount: this.currentUserRoles.length });
+    logger.debug("Retrieving current user roles", {
+      roleCount: this.currentUserRoles.length,
+    });
     return [...this.currentUserRoles];
   }
 
@@ -341,23 +368,27 @@ export class MongoDatabaseManager {
    * Get current primary role
    */
   public static getCurrentRole(): string | null {
-    logger.debug("Retrieving current primary role", { primaryRole: this.currentRole });
+    logger.debug("Retrieving current primary role", {
+      primaryRole: this.currentRole,
+    });
     return this.currentRole;
   }
 
   /**
    * Initialize connections for current user roles
    */
-  private static async initializeUserRoleConnections(): Promise<void> {
+  private static async initializeUserRoleConnections(isCore: boolean = false): Promise<void> {
     logger.info("Initializing connections for user roles", {
       roleCount: this.currentUserRoles.length,
     });
-    const requiredDatabases = this.getCurrentUserDatabases();
+    const requiredDatabases = this.getCurrentUserDatabases(isCore);
     const failedInitializations: { key: string; error: Error }[] = [];
 
     const initPromises = requiredDatabases.map(async (dbKey) => {
       if (this.connections[dbKey]) {
-        logger.debug("Connection already exists, skipping", { databaseKey: dbKey });
+        logger.debug("Connection already exists, skipping", {
+          databaseKey: dbKey,
+        });
         return;
       }
 
@@ -370,7 +401,9 @@ export class MongoDatabaseManager {
           );
         }
 
-        logger.debug("Creating connection for database", { databaseKey: dbKey });
+        logger.debug("Creating connection for database", {
+          databaseKey: dbKey,
+        });
         const dao = await MongoDatabaseFactory.createFromSchema(
           schema,
           this.defaultConnectionString,
@@ -378,7 +411,9 @@ export class MongoDatabaseManager {
         );
 
         this.connections[dbKey] = dao;
-        logger.info("Connection established for database", { databaseKey: dbKey });
+        logger.info("Connection established for database", {
+          databaseKey: dbKey,
+        });
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
         logger.error("Failed to initialize database connection", {
@@ -423,7 +458,9 @@ export class MongoDatabaseManager {
   private static async cleanupUnusedConnections(
     previousRoles: string[]
   ): Promise<void> {
-    logger.debug("Cleaning up unused connections", { previousRoleCount: previousRoles.length });
+    logger.debug("Cleaning up unused connections", {
+      previousRoleCount: previousRoles.length,
+    });
     const previousDatabases = new Set<string>();
     previousDatabases.add("core");
 
@@ -433,7 +470,9 @@ export class MongoDatabaseManager {
         logger.trace("Processing previous role databases", { roleName });
         roleConfig.requiredDatabases.forEach((db) => previousDatabases.add(db));
         if (roleConfig.optionalDatabases) {
-          roleConfig.optionalDatabases.forEach((db) => previousDatabases.add(db));
+          roleConfig.optionalDatabases.forEach((db) =>
+            previousDatabases.add(db)
+          );
         }
       }
     }
@@ -444,7 +483,9 @@ export class MongoDatabaseManager {
     );
 
     if (databasesToClose.length > 0) {
-      logger.info("Closing unused database connections", { databaseCount: databasesToClose.length });
+      logger.info("Closing unused database connections", {
+        databaseCount: databasesToClose.length,
+      });
       for (const dbKey of databasesToClose) {
         if (this.connections[dbKey]) {
           try {
@@ -469,7 +510,10 @@ export class MongoDatabaseManager {
   public static hasAccessToDatabase(dbKey: string): boolean {
     logger.debug("Checking access to database", { databaseKey: dbKey });
     const hasAccess = this.getSchema(dbKey) !== undefined;
-    logger.trace("Database access check result", { databaseKey: dbKey, hasAccess });
+    logger.trace("Database access check result", {
+      databaseKey: dbKey,
+      hasAccess,
+    });
     return hasAccess;
   }
 
@@ -509,7 +553,10 @@ export class MongoDatabaseManager {
       this.eventListeners.set(schemaName, []);
     }
     this.eventListeners.get(schemaName)!.push(callback);
-    logger.trace("Listener registered", { schemaName, listenerCount: this.eventListeners.get(schemaName)!.length });
+    logger.trace("Listener registered", {
+      schemaName,
+      listenerCount: this.eventListeners.get(schemaName)!.length,
+    });
   }
 
   /**
@@ -525,7 +572,10 @@ export class MongoDatabaseManager {
       const index = listeners.indexOf(callback);
       if (index > -1) {
         listeners.splice(index, 1);
-        logger.trace("Listener removed", { schemaName, listenerCount: listeners.length });
+        logger.trace("Listener removed", {
+          schemaName,
+          listenerCount: listeners.length,
+        });
       }
     }
   }
@@ -560,7 +610,9 @@ export class MongoDatabaseManager {
    * Close all connections
    */
   private static async closeAllConnections(): Promise<void> {
-    logger.info("Closing all database connections", { connectionCount: Object.keys(this.connections).length });
+    logger.info("Closing all database connections", {
+      connectionCount: Object.keys(this.connections).length,
+    });
     if (this.isClosingConnections) {
       logger.debug("Connections already being closed, skipping");
       return;
@@ -570,7 +622,9 @@ export class MongoDatabaseManager {
     try {
       const currentActiveDb = Object.keys(this.connections);
       currentActiveDb.forEach((dbKey) => this.activeDatabases.add(dbKey));
-      logger.debug("Saved active databases", { activeDatabases: currentActiveDb });
+      logger.debug("Saved active databases", {
+        activeDatabases: currentActiveDb,
+      });
 
       const closePromises = Object.entries(this.connections).map(
         async ([dbKey, dao]) => {
@@ -600,7 +654,9 @@ export class MongoDatabaseManager {
    * Reopen connections
    */
   public static async reopenConnections(): Promise<void> {
-    logger.info("Reopening database connections", { activeDatabaseCount: this.activeDatabases.size });
+    logger.info("Reopening database connections", {
+      activeDatabaseCount: this.activeDatabases.size,
+    });
     try {
       await this.initializeCoreConnection();
       logger.debug("Core connection reopened");
@@ -634,13 +690,17 @@ export class MongoDatabaseManager {
               }
             }
           } else {
-            logger.debug("Notifying existing connection", { databaseKey: dbKey });
+            logger.debug("Notifying existing connection", {
+              databaseKey: dbKey,
+            });
             this.notifyDatabaseReconnect(dbKey, this.connections[dbKey]);
           }
         }
       }
     } catch (error) {
-      logger.error("Error reopening connections", { error: (error as Error).message });
+      logger.error("Error reopening connections", {
+        error: (error as Error).message,
+      });
       throw error;
     }
   }
@@ -662,7 +722,10 @@ export class MongoDatabaseManager {
     if (this.connections[key]) {
       try {
         const isConnected = this.connections[key].isConnectionOpen();
-        logger.trace("Connection status checked", { databaseKey: key, isConnected });
+        logger.trace("Connection status checked", {
+          databaseKey: key,
+          isConnected,
+        });
         if (isConnected) {
           logger.debug("Connection is active", { databaseKey: key });
           return this.connections[key];
@@ -670,7 +733,9 @@ export class MongoDatabaseManager {
           logger.warn("Connection inactive, cleaning up", { databaseKey: key });
           try {
             await this.connections[key].disconnect().catch(() => {});
-            logger.debug("Inactive connection disconnected", { databaseKey: key });
+            logger.debug("Inactive connection disconnected", {
+              databaseKey: key,
+            });
           } catch (error) {
             logger.error("Error disconnecting inactive connection", {
               databaseKey: key,
@@ -688,7 +753,9 @@ export class MongoDatabaseManager {
       }
     }
 
-    logger.debug("Creating new connection via lazy loading", { databaseKey: key });
+    logger.debug("Creating new connection via lazy loading", {
+      databaseKey: key,
+    });
     return await this.getLazyLoading(key);
   }
 
@@ -696,7 +763,9 @@ export class MongoDatabaseManager {
    * Get all connections
    */
   public static getConnections(): MongoDatabaseConnections {
-    logger.debug("Retrieving all connections", { connectionCount: Object.keys(this.connections).length });
+    logger.debug("Retrieving all connections", {
+      connectionCount: Object.keys(this.connections).length,
+    });
     return { ...this.connections };
   }
 
@@ -706,7 +775,9 @@ export class MongoDatabaseManager {
   public static async openAllExisting(
     databaseKeys: string[]
   ): Promise<boolean> {
-    logger.info("Opening all existing databases", { databaseCount: databaseKeys.length });
+    logger.info("Opening all existing databases", {
+      databaseCount: databaseKeys.length,
+    });
     const failedOpens: { key: string; error: Error }[] = [];
 
     for (const key of databaseKeys) {
@@ -748,7 +819,9 @@ export class MongoDatabaseManager {
     }
 
     this.isInitialized = true;
-    logger.info("All existing databases opened successfully", { databaseCount: databaseKeys.length });
+    logger.info("All existing databases opened successfully", {
+      databaseCount: databaseKeys.length,
+    });
     return true;
   }
 
@@ -756,7 +829,9 @@ export class MongoDatabaseManager {
    * Initialize databases lazily
    */
   public static async initLazySchema(databaseKeys: string[]): Promise<boolean> {
-    logger.info("Initializing lazy schemas", { databaseCount: databaseKeys.length });
+    logger.info("Initializing lazy schemas", {
+      databaseCount: databaseKeys.length,
+    });
     const invalidKeys = databaseKeys.filter((key) => !this.getSchema(key));
     if (invalidKeys.length > 0) {
       logger.error("Invalid database keys found", { invalidKeys });
@@ -784,7 +859,9 @@ export class MongoDatabaseManager {
     const failedInitializations: { key: string; error: Error }[] = [];
     const initPromises = databaseKeys.map(async (key) => {
       if (this.connections[key]) {
-        logger.debug("Connection already initialized, skipping", { databaseKey: key });
+        logger.debug("Connection already initialized, skipping", {
+          databaseKey: key,
+        });
         return;
       }
 
@@ -844,7 +921,9 @@ export class MongoDatabaseManager {
     }
 
     const availableSchemas = this.getAvailableSchemas();
-    logger.debug("Retrieved available schemas", { schemaCount: availableSchemas.length });
+    logger.debug("Retrieved available schemas", {
+      schemaCount: availableSchemas.length,
+    });
     const failedInitializations: { key: string; error: Error }[] = [];
 
     const initPromises = availableSchemas.map(async (key) => {
@@ -924,7 +1003,9 @@ export class MongoDatabaseManager {
         this.connectionOptions
       );
       this.connections[key] = dao;
-      logger.info("New connection created via lazy loading", { databaseKey: key });
+      logger.info("New connection created via lazy loading", {
+        databaseKey: key,
+      });
     }
 
     this.isInitialized = true;
@@ -941,10 +1022,14 @@ export class MongoDatabaseManager {
     schemas: string[],
     callback: (daos: Record<string, MongoUniversalDAO>) => Promise<void>
   ): Promise<void> {
-    logger.info("Executing cross-schema transaction", { schemaCount: schemas.length });
+    logger.info("Executing cross-schema transaction", {
+      schemaCount: schemas.length,
+    });
     for (const key of schemas) {
       if (!this.hasAccessToDatabase(key)) {
-        logger.error("Access denied to database in transaction", { databaseKey: key });
+        logger.error("Access denied to database in transaction", {
+          databaseKey: key,
+        });
         throw new Error(`Access denied: Database '${key}' is not accessible.`);
       }
     }
@@ -968,7 +1053,9 @@ export class MongoDatabaseManager {
       await Promise.all(
         Object.values(daos).map((dao) => dao.commitTransaction())
       );
-      logger.info("Cross-schema transaction committed successfully", { schemaCount: schemas.length });
+      logger.info("Cross-schema transaction committed successfully", {
+        schemaCount: schemas.length,
+      });
     } catch (error) {
       logger.error("Error in cross-schema transaction, rolling back", {
         schemas,
@@ -1110,7 +1197,9 @@ export class MongoDatabaseManager {
    */
   public static listConnections(): string[] {
     const connections = Object.keys(this.connections);
-    logger.debug("Listing active connections", { connectionCount: connections.length });
+    logger.debug("Listing active connections", {
+      connectionCount: connections.length,
+    });
     return connections;
   }
 
